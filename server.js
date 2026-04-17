@@ -79,11 +79,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/webhook', webhookLimiter, webhookRoutes);
 app.use('/api/auth', authRoutes);   // login/verify — sem auth middleware
+app.use('/api', settingsRoutes);    // antes do apiRoutes: OAuth Bling não usa JWT
 app.use('/api', apiRoutes);
 app.use('/api', extraRoutes);
 app.use('/api', campaignRoutes);
 app.use('/api', messageRoutes);
-app.use('/api', settingsRoutes);
 
 // Descadastro de email — rota direta para links nos e-mails
 app.get('/email/unsubscribe', (req, res) => {
