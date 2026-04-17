@@ -1683,6 +1683,7 @@ async function doLogin() {
     localStorage.setItem('isafe_token', _authToken);
     _hideLogin();
     _setAvatar(data.user || user || 'admin');
+    initApp();
     document.getElementById('login-pass').value = '';
   } catch(e) {
     errEl.textContent = e.message;
@@ -4514,15 +4515,17 @@ async function changePassword() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────
-checkAuth();
-loadSteps();
-renderDayEditor();
-setTimeout(initChart, 100);
-loadDashboard();
-loadClients();
-loadClientFilters();
-// Atualiza dashboard a cada 60 segundos
-setInterval(loadDashboard, 60000);
+function initApp() {
+  loadSteps();
+  renderDayEditor();
+  setTimeout(initChart, 100);
+  loadDashboard();
+  loadClients();
+  loadClientFilters();
+}
+
+checkAuth().then(() => { if (_authToken) initApp(); });
+setInterval(() => { if (_authToken) loadDashboard(); }, 60000);
 </script>
 </body>
 </html>
