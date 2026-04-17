@@ -1,0 +1,23 @@
+# Dependências
+node_modules/
+
+# Ambiente e Segredos
+.env
+.env.local
+.env.production
+
+# Logs — rastreia a pasta mas ignora os arquivos de log
+logs/*.log
+*.log
+npm-debug.log*
+
+# Sistema (macOS / Windows)
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Docker (dados locais do banco se mapeados para pasta)
+pgdata/

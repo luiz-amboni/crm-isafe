@@ -1,0 +1,25 @@
+# Segredos — nunca incluir na imagem Docker
+.env
+.env.local
+.env.production
+
+# Dependências — instaladas dentro da imagem
+node_modules/
+
+# Logs — montados como volume em runtime
+logs/
+
+# Git e IDEs
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Dados locais do banco
+pgdata/
+
+# Documentação e dev tools
+README.md
+CLAUDE.md
+.DS_Store
+Thumbs.db

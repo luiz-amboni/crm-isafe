@@ -1,0 +1,82 @@
+version: '3.9'
+
+# ════════════════════════════════════════════════════
+# iSafe CRM · Docker Compose
+# Para subir: docker compose up -d
+# Para logs:  docker compose logs -f crm
+# ════════════════════════════════════════════════════
+
+services:
+
+  # ── BANCO DE DADOS ──────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: isafe_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       isafe_crm
+      POSTGRES_USER:     isafe
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-isafe_secure_2025}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    # porta não exposta — acesso interno via rede Docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U isafe -d isafe_crm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── CRM BACKEND ─────────────────────────────────────
+  crm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: isafe_crm
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT:         3000
+      DATABASE_URL: postgresql://isafe:${DB_PASSWORD:-isafe_secure_2025}@postgres:5432/isafe_crm
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./logs:/app/logs
+      - ./public:/app/public:ro
+      - ./routes:/app/routes:ro
+      - ./services:/app/services:ro
+      - ./middleware:/app/middleware:ro
+      - ./utils:/app/utils:ro
+      - ./templates:/app/templates:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── NGINX (proxy reverso com SSL) ───────────────────
+  # Descomente se quiser HTTPS direto no Docker
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: isafe_nginx
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - crm
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - /etc/letsencrypt:/etc/letsencrypt:ro
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: isafe_network
