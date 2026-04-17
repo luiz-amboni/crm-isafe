@@ -29,15 +29,10 @@ const PORT = process.env.PORT || 3000;
 
 app.use(helmet({ contentSecurityPolicy: false })); // dashboard usa inline scripts
 
-app.use(cors({
-  origin: [
-    'https://lojaisafe.com.br',
-    'https://crm.lojaisafe.com.br',
-    'http://localhost:3000',
-    'http://localhost:5173',
-  ],
-  credentials: true,
-}));
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:5173'];
+if (process.env.APP_URL) allowedOrigins.push(process.env.APP_URL);
+
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 // ── CORRELATION ID ────────────────────────────────────────────────────────
 // Cada request recebe um ID único para rastreabilidade nos logs
