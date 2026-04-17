@@ -1672,7 +1672,7 @@ async function doLogin() {
   errEl.style.display = 'none';
   btn.disabled = true; btn.textContent = 'Entrando...';
   try {
-    const res  = await fetch('/api/auth/login', {
+    const res  = await apiFetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: user, password: pass }),
@@ -1991,7 +1991,7 @@ async function saveStep() {
   try {
     const url  = _stepModalId ? `/api/steps/${_stepModalId}` : '/api/steps';
     const meth = _stepModalId ? 'PATCH' : 'POST';
-    const res  = await fetch(url, { method: meth, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const res  = await apiFetch(url, { method: meth, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await res.json();
     if (!res.ok) { alert('Erro: ' + (data.error || 'Desconhecido')); return; }
     closeStepModal();
@@ -2007,7 +2007,7 @@ async function saveStep() {
 async function deleteStep(id, label) {
   if (!confirm(`Excluir a automação "${label}"?\n\nIsso não apaga o histórico de mensagens já enviadas.`)) return;
   try {
-    const res = await fetch(`/api/steps/${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/steps/${id}`, { method: 'DELETE' });
     if (res.ok) {
       document.getElementById('step-row-' + id)?.remove();
     } else {
@@ -2022,7 +2022,7 @@ async function deleteStep(id, label) {
 async function toggleStep(id, el) {
   const newState = el.classList.contains('off'); // se está off, vai ativar
   try {
-    await fetch(`/api/steps/${id}`, {
+    await apiFetch(`/api/steps/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_active: newState })
     });
@@ -2558,7 +2558,7 @@ async function showBroadcastList(stepId) {
   document.getElementById('bc-count').textContent = '0';
 
   try {
-    const res  = await fetch(`/api/steps/${stepId}/clients`);
+    const res  = await apiFetch(`/api/steps/${stepId}/clients`);
     const data = await res.json();
     const s    = data.step;
     const all  = data.clients || [];
@@ -2599,7 +2599,7 @@ async function openClientModal(clientId) {
   waLink.style.display = 'none';
 
   try {
-    const res  = await fetch(`/api/clients/${clientId}`);
+    const res  = await apiFetch(`/api/clients/${clientId}`);
     const data = await res.json();
     _cmData = data;
     const c  = data.client;
@@ -3120,7 +3120,7 @@ async function diagOrder() {
   resultEl.style.display = 'block';
   resultEl.textContent = '⏳ Consultando Bling...';
   try {
-    const res  = await fetch(`/api/bling/raw-order/${id}`);
+    const res  = await apiFetch(`/api/bling/raw-order/${id}`);
     const data = await res.json();
     const d = data?.data || data;
     // Mostra campos relevantes: vendedor e situacao
@@ -3277,7 +3277,7 @@ async function saveTmpl(id, btn) {
   const orig = btn.textContent;
   btn.disabled = true; btn.textContent = '...';
   try {
-    await fetch(`/api/steps/${id}`, {
+    await apiFetch(`/api/steps/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
@@ -3293,7 +3293,7 @@ async function saveTmpl(id, btn) {
 async function deleteTmpl(id, label) {
   if (!confirm(`Excluir o template "${label}"?\n\nIsso remove a etapa e seu histórico de envios.`)) return;
   try {
-    const res = await fetch(`/api/steps/${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/steps/${id}`, { method: 'DELETE' });
     if (res.ok) {
       document.getElementById('tmpl-' + id)?.remove();
     } else {
@@ -3636,7 +3636,7 @@ async function loadCampaigns(channel) {
   const statsEl = document.getElementById(channel === 'whatsapp' ? 'wa-camp-stats' : 'em-camp-stats');
   const listEl  = document.getElementById(channel === 'whatsapp' ? 'wa-camp-list'  : 'em-camp-list');
   try {
-    const res  = await fetch(`/api/campaigns?channel=${channel}`);
+    const res  = await apiFetch(`/api/campaigns?channel=${channel}`);
     const camps = await res.json();
 
     // Stats globais
@@ -3751,7 +3751,7 @@ async function saveCampaign() {
   try {
     const body = { name, channel, message: message||null, subject: subject||null,
       audience_filter: audience, scheduled_at: schedAt||null };
-    const res = await fetch(id ? `/api/campaigns/${id}` : '/api/campaigns', {
+    const res = await apiFetch(id ? `/api/campaigns/${id}` : '/api/campaigns', {
       method: id ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -3778,8 +3778,8 @@ async function openCampDrawer(id) {
   document.getElementById('cmpd-clients').innerHTML = '<div style="text-align:center;color:var(--t3);padding:30px">Buscando clientes...</div>';
   try {
     const [campRes, clientsRes] = await Promise.all([
-      fetch(`/api/campaigns/${id}`),
-      fetch(`/api/campaigns/${id}/clients?limit=100`)
+      apiFetch(`/api/campaigns/${id}`),
+      apiFetch(`/api/campaigns/${id}/clients?limit=100`)
     ]);
     const camp    = await campRes.json();
     const clData  = await clientsRes.json();
@@ -3858,7 +3858,7 @@ async function openCampAddClients() {
   const f = filterMap[filter?.trim()];
   if (!f) return;
   try {
-    const res = await fetch(`/api/campaigns/${_cmpData.id}/clients`, {
+    const res = await apiFetch(`/api/campaigns/${_cmpData.id}/clients`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ filter: f })
     });
@@ -3871,7 +3871,7 @@ async function openCampAddClients() {
 async function removeCampClient(campId, clientId, btn) {
   btn.disabled = true;
   try {
-    await fetch(`/api/campaigns/${campId}/clients/${clientId}`, { method: 'DELETE' });
+    await apiFetch(`/api/campaigns/${campId}/clients/${clientId}`, { method: 'DELETE' });
     btn.closest('div[style]').remove();
   } catch(e) { btn.disabled = false; alert('Erro: ' + e.message); }
 }
@@ -3884,7 +3884,7 @@ async function dispatchCampaign() {
   const btn = document.getElementById('cmpd-dispatch-btn');
   btn.disabled = true; btn.textContent = '⏳ Iniciando...';
   try {
-    const res  = await fetch(`/api/campaigns/${_cmpData.id}/dispatch`, { method: 'POST' });
+    const res  = await apiFetch(`/api/campaigns/${_cmpData.id}/dispatch`, { method: 'POST' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     btn.textContent = '⏳ Enviando...';
@@ -3900,7 +3900,7 @@ async function quickDispatch(id, btn) {
   if (!confirm('Disparar esta campanha agora?')) return;
   btn.disabled = true; btn.textContent = '⏳...';
   try {
-    const res  = await fetch(`/api/campaigns/${id}/dispatch`, { method: 'POST' });
+    const res  = await apiFetch(`/api/campaigns/${id}/dispatch`, { method: 'POST' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     btn.textContent = '⏳ Enviando';
@@ -3915,7 +3915,7 @@ async function deleteCampaign() {
   if (!_cmpData) return;
   if (!confirm(`Excluir a campanha "${_cmpData.name}"?\n\nTodos os dados de envio serão perdidos.`)) return;
   try {
-    await fetch(`/api/campaigns/${_cmpData.id}`, { method: 'DELETE' });
+    await apiFetch(`/api/campaigns/${_cmpData.id}`, { method: 'DELETE' });
     closeCampDrawer();
     loadCampaigns(_cmpData.channel);
   } catch(e) { alert('Erro: ' + e.message); }
@@ -4144,7 +4144,7 @@ async function saveTmplLib() {
   btn.disabled = true; btn.textContent = 'Salvando...';
   try {
     const body = { name, channel, category: category||null, subject: subject||null, content };
-    const res  = await fetch(id ? `/api/templates/${id}` : '/api/templates', {
+    const res  = await apiFetch(id ? `/api/templates/${id}` : '/api/templates', {
       method: id ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -4164,7 +4164,7 @@ async function saveTmplLib() {
 async function deleteTmplLib(id, name) {
   if (!confirm(`Excluir a mensagem "${name}"?`)) return;
   try {
-    const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/templates/${id}`, { method: 'DELETE' });
     if (res.ok) {
       _tmpls = _tmpls.filter(t => t.id !== id);
       renderTmplLib();
