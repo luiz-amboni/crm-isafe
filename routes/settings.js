@@ -14,11 +14,9 @@ const cfg    = require('../services/config');
 const { query } = require('../db');
 const logger = require('../services/logger');
 
-router.use(auth);
-
 // ── LISTAR CONFIGURAÇÕES ───────────────────────────────────────────────────
 
-router.get('/settings', async (req, res) => {
+router.get('/settings', auth, async (req, res) => {
   try {
     const settings = await cfg.getAll();
     res.json(settings);
@@ -30,7 +28,7 @@ router.get('/settings', async (req, res) => {
 // ── SALVAR CONFIGURAÇÕES ───────────────────────────────────────────────────
 // Body: { "SENDGRID_API_KEY": "SG.xxx", "EMAIL_FROM": "..." }
 
-router.post('/settings', async (req, res) => {
+router.post('/settings', auth, async (req, res) => {
   try {
     const allowed = new Set(cfg.meta.map(m => m.key));
     const saved   = [];
@@ -137,7 +135,7 @@ router.get('/bling/oauth/callback', async (req, res) => {
 
 // ── TESTE DE CONEXÃO WHATSAPP ──────────────────────────────────────────────
 
-router.post('/settings/test/whatsapp', async (req, res) => {
+router.post('/settings/test/whatsapp', auth, async (req, res) => {
   try {
     const wa = require('../services/whatsapp');
     const status = await wa.getInstanceStatus();
@@ -149,7 +147,7 @@ router.post('/settings/test/whatsapp', async (req, res) => {
 
 // ── TESTE DE CONEXÃO BLING ─────────────────────────────────────────────────
 
-router.post('/settings/test/bling', async (req, res) => {
+router.post('/settings/test/bling', auth, async (req, res) => {
   try {
     const bling = require('../services/bling');
     await bling.getAccessToken();
@@ -161,7 +159,7 @@ router.post('/settings/test/bling', async (req, res) => {
 
 // ── SYNC MANUAL (via dashboard) ───────────────────────────────────────────
 
-router.post('/settings/sync/shopify', async (req, res) => {
+router.post('/settings/sync/shopify', auth, async (req, res) => {
   try {
     const shopify = require('../services/shopify');
     const days    = parseInt(req.body.days || '365');
@@ -172,7 +170,7 @@ router.post('/settings/sync/shopify', async (req, res) => {
   }
 });
 
-router.post('/settings/sync/bagy', async (req, res) => {
+router.post('/settings/sync/bagy', auth, async (req, res) => {
   try {
     const bagy = require('../services/bagy');
     const days = parseInt(req.body.days || '365');
