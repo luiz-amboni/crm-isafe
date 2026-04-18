@@ -3039,7 +3039,24 @@ async function openWbClientDetail(clientId) {
   if (c.total_orders > 1) {
     await _showWbOrderPicker(c);
   } else {
-    _renderWbClientCompose(c, c.last_product, c.bling_order_id);
+    // Sempre tenta buscar nome real do Bling antes de compor
+    const productName = await _fetchFirstItemName(c.bling_order_id, c.last_product);
+    _renderWbClientCompose(c, productName, c.bling_order_id);
+  }
+}
+
+// Busca o nome do primeiro item real do pedido no Bling.
+// Se falhar ou não houver bling_order_id, retorna o fallback.
+async function _fetchFirstItemName(blingOrderId, fallback) {
+  if (!blingOrderId) return fallback || null;
+  try {
+    const res  = await apiFetch(`/api/bling/raw-order/${blingOrderId}`);
+    const raw  = await res.json();
+    const itens = raw?.data?.itens || raw?.itens || [];
+    const nome = itens[0]?.descricao || null;
+    return nome || fallback || null;
+  } catch(e) {
+    return fallback || null;
   }
 }
 
@@ -3066,16 +3083,46 @@ async function _showWbOrderPicker(c) {
     const res  = await apiFetch(`/api/clients/${c.id}`);
     const data = await res.json();
     _wbClientOrders = data.orders || [];
+
+    // Renderiza estrutura base com placeholders; itens do Bling carregam em paralelo
     document.getElementById('wb-order-picker').innerHTML = _wbClientOrders.map((o, idx) => `
-      <div class="asp-cl-row" style="cursor:pointer" onclick="_selectWbOrder(${idx})">
-        <div style="flex:1;min-width:0">
-          <div class="asp-cl-name">${escHtml(trunc(o.product_name||'—', 45))}</div>
-          <div class="asp-cl-sub">${o.ordered_at ? new Date(o.ordered_at).toLocaleDateString('pt-BR') : '--'} · ${fmt(o.amount)}</div>
+      <div class="asp-cl-row" style="cursor:pointer;flex-direction:column;align-items:flex-start;gap:4px" onclick="_selectWbOrder(${idx})">
+        <div style="display:flex;width:100%;align-items:center;gap:8px">
+          <div style="flex:1">
+            <div class="asp-cl-sub" style="font-weight:600;color:var(--t2)">${o.ordered_at ? new Date(o.ordered_at).toLocaleDateString('pt-BR') : '--'} · ${fmt(o.amount)}</div>
+          </div>
+          <div style="flex-shrink:0">${blingLink(o.bling_order_id)}</div>
         </div>
-        <div style="flex-shrink:0">${blingLink(o.bling_order_id)}</div>
+        <div id="wb-op-items-${idx}" style="font-size:11px;color:var(--t3);padding-left:2px">⏳ buscando produtos...</div>
       </div>`).join('');
+
+    // Carrega itens de cada pedido do Bling sem bloquear a UI
+    _wbClientOrders.forEach((o, idx) => _loadWbOrderItems(idx, o));
   } catch(e) {
     document.getElementById('wb-order-picker').innerHTML = `<div style="color:var(--danger);font-size:13px">Erro: ${e.message}</div>`;
+  }
+}
+
+async function _loadWbOrderItems(idx, order) {
+  const el = document.getElementById(`wb-op-items-${idx}`);
+  if (!el) return;
+  if (!order.bling_order_id) {
+    el.textContent = order.product_name && order.product_name !== 'Produto iSafe' ? order.product_name : '—';
+    return;
+  }
+  try {
+    const res   = await apiFetch(`/api/bling/raw-order/${order.bling_order_id}`);
+    const raw   = await res.json();
+    const itens = raw?.data?.itens || raw?.itens || [];
+    if (!itens.length) { el.textContent = order.product_name || '—'; return; }
+    // Guarda nome do primeiro item para uso na IA
+    _wbClientOrders[idx]._firstItemName = itens[0].descricao || null;
+    el.innerHTML = itens.map(item => {
+      const qty = parseFloat(item.quantidade || 1);
+      return `<div>· ${qty > 1 ? qty + '× ' : ''}${escHtml(item.descricao||'—')}</div>`;
+    }).join('');
+  } catch(e) {
+    if (el) el.textContent = order.product_name && order.product_name !== 'Produto iSafe' ? order.product_name : '—';
   }
 }
 
@@ -3083,11 +3130,16 @@ function _selectWbOrder(idx) {
   const c = _wbActiveClient;
   const o = _wbClientOrders[idx];
   if (!c || !o) return;
-  _renderWbClientCompose(c, o.product_name, o.bling_order_id);
+  // Usa nome real do Bling se disponível; ignora placeholder 'Produto iSafe'
+  const productName = o._firstItemName
+    || (o.product_name !== 'Produto iSafe' ? o.product_name : null)
+    || null;
+  _renderWbClientCompose(c, productName, o.bling_order_id);
 }
 
 function _renderWbClientCompose(c, productName, blingOrderId) {
-  _wbActiveProduct = productName || c.last_product || null;
+  const _clean = v => (v && v !== 'Produto iSafe') ? v : null;
+  _wbActiveProduct = _clean(productName) || _clean(c.last_product) || null;
   const fmt      = v => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0});
   const initials = (c.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
   const firstName = (c.name||'').split(' ')[0];
