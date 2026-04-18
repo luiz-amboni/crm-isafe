@@ -2269,6 +2269,17 @@ async function openClientDetail(pipelineId, tab) {
   const canSend  = !!c.phone && (s.channel === 'whatsapp' || s.channel === 'both');
   const det = document.getElementById('asp-detail');
 
+  // Alinha o card verticalmente com o cliente clicado na lista
+  if (rowEl) {
+    const listCol = document.getElementById('asp-client-list-wrap');
+    if (listCol) {
+      const offset = rowEl.getBoundingClientRect().top - listCol.getBoundingClientRect().top;
+      det.style.marginTop = Math.max(0, offset) + 'px';
+    }
+  } else {
+    det.style.marginTop = '0';
+  }
+
   det.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
       <div style="width:44px;height:44px;border-radius:50%;background:var(--navy);color:var(--teal);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials}</div>
@@ -2957,6 +2968,17 @@ async function openWbClientDetail(clientId) {
 
   const canSend = !!c.phone;
   const detail  = document.getElementById('wb-detail');
+
+  // Alinha o card verticalmente com o cliente clicado na lista
+  if (rowEl) {
+    const listCol = document.getElementById('wb-client-list');
+    if (listCol) {
+      const offset = rowEl.getBoundingClientRect().top - listCol.getBoundingClientRect().top;
+      detail.style.marginTop = Math.max(0, offset) + 'px';
+    }
+  } else {
+    detail.style.marginTop = '0';
+  }
 
   detail.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
