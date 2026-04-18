@@ -1012,6 +1012,39 @@ router.post('/bling/setup-webhook', async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════
+// IA — GERAÇÃO DE TEMPLATES
+// ════════════════════════════════════════════════════
+
+// POST /api/ai/generate-template — gera template WhatsApp com IA para uma etapa
+router.post('/ai/generate-template', async (req, res) => {
+  try {
+    const { stepId } = req.body;
+    if (!stepId) return res.status(400).json({ error: 'stepId obrigatório' });
+
+    const { rows } = await query(`SELECT * FROM automation_steps WHERE id = $1`, [stepId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Etapa não encontrada' });
+    const step = rows[0];
+
+    const message = await ai.generateTemplate({
+      dayOffset:  step.day_offset,
+      stepLabel:  step.label,
+      focus:      step.focus,
+      waTemplate: step.wa_template,
+    });
+
+    if (!message) {
+      return res.status(422).json({
+        error: 'Configure uma API Key de IA nas Configurações (Groq — gratuita) para usar este recurso.',
+      });
+    }
+    res.json({ message });
+  } catch (err) {
+    logger.error(`AI generate-template: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════
 // STATUS DO SISTEMA
 // ════════════════════════════════════════════════════
 

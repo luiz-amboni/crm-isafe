@@ -1161,6 +1161,23 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
         </div>
       </div>
 
+      <!-- IA -->
+      <div class="card">
+        <div class="ch" style="gap:10px">
+          <span style="font-size:18px">✦</span>
+          <div><div style="font-weight:600;font-size:13px">Inteligência Artificial</div><div style="font-size:11px;color:var(--t3)">Gere mensagens com IA no botão "✦ Gerar com IA"</div></div>
+          <span id="ai-badge" class="badge" style="margin-left:auto;background:rgba(145,175,196,.12);color:var(--t3);border:1px solid var(--bdr)">● Opcional</span>
+        </div>
+        <div class="cb" style="display:flex;flex-direction:column;gap:9px">
+          <div style="font-size:12px;color:var(--t3);padding:6px 10px;background:rgba(13,52,82,.04);border-radius:6px;line-height:1.6">
+            💡 <strong>Groq é gratuita:</strong> crie uma conta em <strong>console.groq.com</strong>, gere uma API Key e cole abaixo. Usa o modelo <em>llama-3.3-70b</em>.
+          </div>
+          <div><div class="cfg-label">Groq API Key (gratuita) <span style="color:var(--success);font-size:10px">★ recomendada</span></div><input type="password" class="cfg-inp" id="cfg-GROQ_API_KEY" placeholder="gsk_..."></div>
+          <div><div class="cfg-label">Anthropic API Key (pago — alternativa)</div><input type="password" class="cfg-inp" id="cfg-ANTHROPIC_API_KEY" placeholder="sk-ant-..."></div>
+          <button class="btn btn-ghost btn-sm" onclick="saveCfgSection('ai')">💾 Salvar</button>
+        </div>
+      </div>
+
       <!-- SISTEMA -->
       <div class="card">
         <div class="ch" style="gap:10px">
@@ -1824,7 +1841,7 @@ function renderSearch({ clients = [], orders = [] }, q) {
         <div class="sr-item-icon" style="background:rgba(59,189,199,.08)">🛒</div>
         <div style="flex:1;min-width:0">
           <div class="sr-item-main">#${o.order_number} — ${o.client_name||''}</div>
-          <div class="sr-item-sub" style="display:flex;align-items:center;gap:6px">${escHtml(o.product_name||'')} ${blingLink(o.bling_order_id)}</div>
+          <div class="sr-item-sub" style="display:flex;align-items:center;gap:6px">${trunc(o.product_name||'')} ${blingLink(o.bling_order_id)}</div>
         </div>
       </div>`).join('');
   }
@@ -2661,15 +2678,15 @@ function cmRenderTab(tab) {
       const date = o.ordered_at ? new Date(o.ordered_at).toLocaleDateString('pt-BR') : '--';
       return `
         <div style="padding:11px 0;border-bottom:1px solid var(--bdr)">
-          <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="display:flex;align-items:flex-start;gap:10px;cursor:pointer" onclick="expandOrderItems(${o.id},'${o.bling_order_id||''}')">
             <div style="flex:1;min-width:0">
               <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.product_name||'--'}</div>
               <div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap;align-items:center">
                 ${o.order_number ? `<span style="font-size:11px;color:var(--t3)">#${o.order_number}</span>` : ''}
                 ${o.product_category ? `<span style="font-size:11px;color:var(--t3)">${o.product_category}</span>` : ''}
-                ${o.product_sku ? `<span style="font-size:11px;color:var(--t3)">SKU: ${o.product_sku}</span>` : ''}
                 <span style="font-size:11px;color:var(--t3)">${date}</span>
-                ${o.bling_order_id ? `<a href="https://www.bling.com.br/vendas.php#edit/${o.bling_order_id}" target="_blank" style="font-size:11px;color:var(--teal);text-decoration:none;font-weight:500" title="Ver no Bling">🔗 Bling</a>` : ''}
+                ${o.bling_order_id ? `<a href="https://www.bling.com.br/vendas.php#edit/${o.bling_order_id}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--teal);text-decoration:none;font-weight:500" title="Ver no Bling">🔗 Bling</a>` : ''}
+                <span style="font-size:10px;color:var(--t3)">▾ ver itens</span>
               </div>
             </div>
             <div style="text-align:right;flex-shrink:0">
@@ -2677,6 +2694,7 @@ function cmRenderTab(tab) {
               ${o.messages_sent > 0 ? `<div style="font-size:10px;color:var(--teal);margin-top:2px">${o.messages_sent} msg enviada${o.messages_sent!==1?'s':''}</div>` : ''}
             </div>
           </div>
+          <div id="oi-${o.id}" style="display:none"></div>
         </div>`;
     }).join('');
   }
@@ -2713,7 +2731,7 @@ function cmRenderTab(tab) {
           <div style="font-size:16px;flex-shrink:0">${chIcon[m.channel]||'📨'}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:12px;font-weight:500">${m.step_label||`D+${m.day_offset}`}</div>
-            <div style="font-size:11px;color:var(--t3);margin-top:1px;display:flex;align-items:center;gap:5px">${escHtml(m.product_name||'')} ${m.order_number?'· #'+m.order_number:''} ${blingLink(m.bling_order_id)}</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:1px;display:flex;align-items:center;gap:5px">${trunc(m.product_name||'')} ${m.order_number?'· #'+m.order_number:''} ${blingLink(m.bling_order_id)}</div>
             ${m.wa_message ? `<div style="font-size:11px;color:var(--t2);margin-top:3px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:380px">"${m.wa_message.substring(0,60)}${m.wa_message.length>60?'…':''}"</div>` : ''}
             ${m.error_message ? `<div style="font-size:11px;color:var(--danger);margin-top:2px">✗ ${m.error_message}</div>` : ''}
           </div>
@@ -2723,6 +2741,43 @@ function cmRenderTab(tab) {
           </div>
         </div>`;
     }).join('');
+  }
+}
+
+async function expandOrderItems(orderId, blingOrderId) {
+  const el = document.getElementById('oi-' + orderId);
+  if (!el) return;
+  if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  if (el.innerHTML) return; // já carregado
+
+  if (!blingOrderId) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--t3);padding:6px 0 2px">Pedido sem ID Bling — itens indisponíveis</div>';
+    return;
+  }
+
+  el.innerHTML = '<div style="font-size:11px;color:var(--t3);padding:6px 0 2px">⏳ Buscando itens no Bling...</div>';
+  try {
+    const res  = await apiFetch(`/api/bling/raw-order/${blingOrderId}`);
+    const raw  = await res.json();
+    const itens = raw?.data?.itens || raw?.itens || [];
+    if (itens.length === 0) {
+      el.innerHTML = '<div style="font-size:11px;color:var(--t3);padding:6px 0 2px">Nenhum item encontrado</div>';
+      return;
+    }
+    el.innerHTML = `<div style="border-top:1px solid var(--bdr);margin-top:6px;padding-top:6px">` +
+      itens.map(item => {
+        const qty   = parseFloat(item.quantidade || 1);
+        const price = parseFloat(item.valorUnidade || 0);
+        const total = qty * price;
+        return `<div style="display:flex;align-items:flex-start;gap:8px;padding:3px 0;font-size:12px">
+          <span style="color:var(--t3);min-width:22px;flex-shrink:0">${qty}×</span>
+          <span style="flex:1;color:var(--t1)">${escHtml(item.descricao||'--')}</span>
+          <span style="color:var(--t2);white-space:nowrap;flex-shrink:0">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+        </div>`;
+      }).join('') + '</div>';
+  } catch(e) {
+    el.innerHTML = `<div style="font-size:11px;color:var(--danger);padding:6px 0 2px">Erro: ${escHtml(e.message)}</div>`;
   }
 }
 
@@ -3250,7 +3305,7 @@ async function renderMsgs() {
           </div>` : ''}
         </div>
         <div class="msg-act">
-          ${hasWA ? `<button class="btn btn-teal btn-sm" onclick="genAIById(${s.id},${s.day_offset},'${s.label.replace(/'/g,'')}')">✦ Gerar com IA</button>
+          ${hasWA ? `<button class="btn btn-teal btn-sm" onclick="genAIById(${s.id})">✦ Gerar com IA</button>
           <div class="ai-load" id="ld-${s.id}"><div class="spin"></div> Gerando...</div>` : ''}
           <button class="btn btn-ghost btn-sm" onclick="saveTmpl(${s.id},this)">💾 Salvar template</button>
         </div>
@@ -3304,25 +3359,26 @@ async function deleteTmpl(id, label) {
   } catch(e) { alert('Erro: ' + e.message); }
 }
 
-async function genAIById(id, day, label) {
+async function genAIById(id) {
   const ta = document.getElementById('ta-wa-' + id);
   const ld = document.getElementById('ld-' + id);
   if (!ta) return;
   ld?.classList.add('show');
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await apiFetch('/api/ai/generate-template', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514', max_tokens: 350,
-        messages: [{ role: 'user', content: `Você é especialista em copywriting para e-commerce de tecnologia premium. Crie uma mensagem de WhatsApp para a iSafe Techstore (Criciúma, SC) para enviar no D+${day} pós-compra.\n\nEtapa: ${label}\nTom: pessoal, caloroso, genuíno — não robótico, não corporativo\nRegras: máx. 6 linhas · máx. 2 emojis · use {{nome}} e {{produto}} · termine com pergunta suave ou CTA leve\nProibido: "qualquer dúvida estamos à disposição", excesso de exclamações, frases genéricas\n\nResponda APENAS com a mensagem, sem introdução, sem aspas.` }]
-      })
+      body: JSON.stringify({ stepId: id }),
     });
     const d = await res.json();
-    ta.value = d.content[0].text.trim();
+    if (!res.ok) throw new Error(d.error || 'Erro ' + res.status);
+    ta.value = (d.message || '').trim();
     syncPreviewById(id);
-  } catch { ta.value = 'Erro ao gerar. Verifique a conexão.'; }
-  finally { ld?.classList.remove('show'); }
+  } catch(e) {
+    alert('Erro ao gerar com IA: ' + e.message);
+  } finally {
+    ld?.classList.remove('show');
+  }
 }
 
 
@@ -3397,7 +3453,7 @@ async function loadDashboard() {
             <div class="act-ic" style="background:rgba(168,85,247,.12);color:#a855f7">🛒</div>
             <div class="act-info">
               <div class="act-nm">${escHtml(o.client_name||'—')}</div>
-              <div class="act-ds" style="display:flex;align-items:center;gap:6px">${escHtml(o.product_name||'')} ${o.order_number?'<span style="color:var(--t3)">#'+o.order_number+'</span>':''} ${blingLink(o.bling_order_id)}</div>
+              <div class="act-ds" style="display:flex;align-items:center;gap:6px">${trunc(o.product_name||'')} ${o.order_number?'<span style="color:var(--t3)">#'+o.order_number+'</span>':''} ${blingLink(o.bling_order_id)}</div>
             </div>
             <div class="act-t"><div style="color:var(--navy);font-weight:700">${amt}</div><div>${relTime(o.ordered_at)}</div></div>
           </div>`;
@@ -4195,6 +4251,7 @@ const CFG_CATEGORIES = {
   email:    ['SENDGRID_API_KEY','EMAIL_FROM','EMAIL_FROM_NAME'],
   shopify:  ['SHOPIFY_STORE','SHOPIFY_ACCESS_TOKEN'],
   bagy:     ['BAGY_STORE_ID','BAGY_API_KEY'],
+  ai:       ['GROQ_API_KEY','ANTHROPIC_API_KEY'],
 };
 
 async function loadSettings() {
@@ -4219,12 +4276,14 @@ async function loadSettings() {
     const emailOk   = !!(cfg.SENDGRID_API_KEY?.configured);
     const shopifyOk = !!(cfg.SHOPIFY_STORE?.configured && cfg.SHOPIFY_ACCESS_TOKEN?.configured);
     const bagyOk    = !!(cfg.BAGY_API_KEY?.configured && cfg.BAGY_STORE_ID?.configured);
+    const aiOk      = !!(cfg.GROQ_API_KEY?.configured || cfg.ANTHROPIC_API_KEY?.configured);
 
     _setCfgBadge('bling-badge',   blingOk,  cfg.BLING_ACCESS_TOKEN?.configured ? 'Autorizado' : 'Configurado', 'Não configurado');
     _setCfgBadge('wa-badge',      waOk,     'Configurado','Não configurado');
     _setCfgBadge('email-badge',   emailOk,  'Configurado','Não configurado');
     _setCfgBadge('shopify-badge', shopifyOk,'Configurado','Aguardando');
     _setCfgBadge('bagy-badge',    bagyOk,   'Configurado','Aguardando');
+    _setCfgBadge('ai-badge',      aiOk,     'Configurado','Opcional');
 
     // Mostra dica se Bling tem Client ID mas não tem token OAuth ainda
     const tip = document.getElementById('bling-oauth-tip');
@@ -4402,6 +4461,10 @@ async function syncBagy() {
 function escHtml(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function trunc(str, n=38) {
+  const s = String(str||'');
+  return s.length > n ? escHtml(s.slice(0, n)) + '…' : escHtml(s);
+}
 
 // ── MINHA CONTA ───────────────────────────────────────────────
 let _histPage  = 1;
@@ -4452,7 +4515,7 @@ async function loadAccountHistory(page) {
           <div class="hist-ic" style="background:${bgIc};color:${colIc}">${icon}</div>
           <div>
             <div class="hist-nm">${escHtml(r.client_name||'—')}</div>
-            <div class="hist-ds" style="display:flex;align-items:center;gap:5px">${escHtml(r.product_name||'')}${r.order_number?' · #'+r.order_number:''} ${blingLink(r.bling_order_id)}</div>
+            <div class="hist-ds" style="display:flex;align-items:center;gap:5px">${trunc(r.product_name||'')}${r.order_number?' · #'+r.order_number:''} ${blingLink(r.bling_order_id)}</div>
           </div>
           <div class="hist-step">D+${r.day_offset}<br><span style="color:var(--t3)">${escHtml(r.step_label||'')}</span></div>
           <div class="hist-step" style="color:${stC};font-weight:600">${stL}</div>

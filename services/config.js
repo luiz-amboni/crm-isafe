@@ -47,6 +47,10 @@ const SETTINGS_META = [
   { key: 'BAGY_API_KEY',   label: 'API Key', category: 'bagy', secret: true  },
   { key: 'BAGY_STORE_ID',  label: 'Store ID', category: 'bagy', secret: false },
 
+  // IA (geração de mensagens)
+  { key: 'GROQ_API_KEY',      label: 'Groq API Key (gratuita)',      category: 'ai', secret: true, hint: 'Obtenha grátis em console.groq.com · usa llama-3.3-70b' },
+  { key: 'ANTHROPIC_API_KEY', label: 'Anthropic API Key (pago)',     category: 'ai', secret: true, hint: 'Alternativa paga — deixe em branco se usar Groq' },
+
   // BLING OAUTH (gerenciado automaticamente — não exibido como campo editável)
   { key: 'BLING_ACCESS_TOKEN',  label: 'Access Token',  category: 'bling', secret: true,  internal: true },
   { key: 'BLING_REFRESH_TOKEN', label: 'Refresh Token', category: 'bling', secret: true,  internal: true },
