@@ -409,7 +409,7 @@ router.get('/winback/clients', async (req, res) => {
 // clientId=null → gera template genérico de reativação
 router.post('/winback/preview-message', async (req, res) => {
   try {
-    const { clientId, template } = req.body;
+    const { clientId, template, productName } = req.body;
 
     let cl = { name: 'Cliente', product_name: 'produto Apple', product_category: 'Apple', days_inactive: 120 };
     if (clientId) {
@@ -425,6 +425,8 @@ router.post('/winback/preview-message', async (req, res) => {
       `, [clientId]);
       if (!rows.length) return res.status(404).json({ error: 'Cliente não encontrado' });
       cl = rows[0];
+      // Usa o produto selecionado no frontend quando informado (ex: picker de pedidos)
+      if (productName) cl.product_name = productName;
     }
 
     const message = await ai.generateMessage({

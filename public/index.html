@@ -3171,7 +3171,7 @@ async function wbRegenMsg(clientId) {
     const template = document.getElementById('wb-seg-template')?.value || '';
     const res  = await apiFetch('/api/winback/preview-message', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ clientId: c.id, template }),
+      body: JSON.stringify({ clientId: c.id, template, productName: _wbActiveProduct || c.last_product }),
     });
     const data = await res.json();
     if (data.message) { ta.value = data.message; wbUpdateWaLink(); btn.textContent = '✨ Regenerar'; }
