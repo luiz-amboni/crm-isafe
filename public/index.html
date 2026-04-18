@@ -2269,17 +2269,6 @@ async function openClientDetail(pipelineId, tab) {
   const canSend  = !!c.phone && (s.channel === 'whatsapp' || s.channel === 'both');
   const det = document.getElementById('asp-detail');
 
-  // Alinha o card verticalmente com o cliente clicado na lista
-  if (rowEl) {
-    const listCol = document.getElementById('asp-client-list-wrap');
-    if (listCol) {
-      const offset = rowEl.getBoundingClientRect().top - listCol.getBoundingClientRect().top;
-      det.style.marginTop = Math.max(0, offset) + 'px';
-    }
-  } else {
-    det.style.marginTop = '0';
-  }
-
   det.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
       <div style="width:44px;height:44px;border-radius:50%;background:var(--navy);color:var(--teal);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials}</div>
@@ -2969,17 +2958,6 @@ async function openWbClientDetail(clientId) {
   const canSend = !!c.phone;
   const detail  = document.getElementById('wb-detail');
 
-  // Alinha o card verticalmente com o cliente clicado na lista
-  if (rowEl) {
-    const listCol = document.getElementById('wb-client-list');
-    if (listCol) {
-      const offset = rowEl.getBoundingClientRect().top - listCol.getBoundingClientRect().top;
-      detail.style.marginTop = Math.max(0, offset) + 'px';
-    }
-  } else {
-    detail.style.marginTop = '0';
-  }
-
   detail.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
       <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--teal),var(--navy));display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700;flex-shrink:0">${initials}</div>
@@ -3088,23 +3066,6 @@ async function wbMarkContacted(clientId) {
       alert('Erro: ' + (data.error||'Tente novamente'));
     }
   } catch(e) { btn.disabled = false; btn.textContent = '✓ Marcar como contatado'; alert('Erro: '+e.message); }
-}
-
-async function wbBroadcast(days, maxDays) {
-  document.getElementById('broadcast-overlay').style.display = 'flex';
-  document.getElementById('bc-title').textContent = `Lista WA · Inativos ${days}–${maxDays >= 9999 ? '∞' : maxDays} dias`;
-  document.getElementById('bc-numbers').value = '';
-  document.getElementById('bc-message').value = '';
-  document.getElementById('bc-count').textContent = '...';
-  try {
-    const res     = await apiFetch(`/api/winback/clients?days=${days}&max_days=${maxDays}&limit=500`);
-    const clients = await res.json();
-    const withPhone = clients.filter(c => c.phone);
-    document.getElementById('bc-sub').textContent = `${withPhone.length} de ${clients.length} clientes têm telefone`;
-    document.getElementById('bc-count').textContent = withPhone.length;
-    document.getElementById('bc-numbers').value = withPhone.map(c => c.phone).join('\n');
-    document.getElementById('bc-message').value = document.getElementById('wb-seg-template')?.value || '';
-  } catch(e) { document.getElementById('bc-sub').textContent = 'Erro: ' + e.message; }
 }
 
 // ── SYNC BLING ────────────────────────────────────────────────
@@ -3236,48 +3197,6 @@ function copyText(textareaId, btnSpanId) {
   });
 }
 
-async function sendManualStep(pipelineId, dayOffset, btn) {
-  if (!confirm(`Enviar mensagem D+${dayOffset} para este cliente agora?\n\nO envio acontece imediatamente via WhatsApp/E-mail configurado.`)) return;
-  btn.disabled = true;
-  btn.textContent = '...';
-  try {
-    const res  = await apiFetch('/api/messages/resend', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pipelineId, dayOffset })
-    });
-    const data = await res.json();
-    if (data.success === true) {
-      // Mensagem enviada — atualiza botão localmente e recarrega o drawer + clientes
-      btn.style.background = 'rgba(34,197,94,.15)';
-      btn.style.color = 'var(--success)';
-      btn.style.border = '1px solid rgba(34,197,94,.3)';
-      btn.textContent = '✓ Enviado';
-      // Recarrega o drawer de clientes desta etapa para mostrar "Já enviado"
-      if (typeof _scdStepId !== 'undefined' && _scdStepId) {
-        setTimeout(() => viewStepClients(_scdStepId, _scdVendedor), 600);
-      }
-      // Invalida cache de clientes — próxima visita à aba Clientes mostrará tag atualizada
-      _clientsStale = true;
-    } else if (data.skipped) {
-      btn.disabled = false;
-      btn.textContent = '▶ Enviar';
-      alert('⚠ Envio pulado: cliente não tem telefone ou e-mail cadastrado para este canal.');
-    } else if (data.failed || !data.success) {
-      btn.disabled = false;
-      btn.textContent = '▶ Enviar';
-      const motivo = data.error || 'WhatsApp/E-mail não está conectado neste servidor.\n\nConfigure a Evolution API (WhatsApp) ou SendGrid (e-mail) no arquivo .env e reinicie os containers.';
-      alert('❌ Falha no envio\n\n' + motivo);
-    } else {
-      btn.disabled = false;
-      btn.textContent = '▶ Enviar';
-      alert('Resposta inesperada da API. Verifique os logs do servidor.');
-    }
-  } catch(e) {
-    btn.disabled = false;
-    btn.textContent = '▶ Enviar';
-    alert('Erro de conexão: ' + e.message);
-  }
-}
 
 // ── MESSAGES ─────────────────────────────────────────────────
 function fmtWA(t) { return t.replace(/\*(.+?)\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
@@ -3609,7 +3528,6 @@ async function loadClients(page) {
   }
 }
 
-function renderClients() { loadClients(); }
 function filterSearch(v){ curSearch=v.toLowerCase(); curPage=1; loadClients(); }
 
 function filterStage(s, el){
@@ -3667,13 +3585,13 @@ function saveDays() {
   const days = STEPS.map((_,i)=> parseInt(document.getElementById('day-'+i)?.value||0));
   localStorage.setItem('isafe_days', JSON.stringify(days));
   STEPS = getSteps();
-  renderTL(); renderMsgs(); renderDayEditor();
+  renderMsgs(); renderDayEditor();
   alert('✅ Dias da jornada salvos!\n\nO scheduler respeitará os novos intervalos no próximo ciclo.');
 }
 function resetDays() {
   localStorage.removeItem('isafe_days');
   STEPS = DEFAULT_STEPS.map(s=>({...s}));
-  renderTL(); renderMsgs(); renderDayEditor();
+  renderMsgs(); renderDayEditor();
 }
 
 // ── GUIDES ────────────────────────────────────────────────────
