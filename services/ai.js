@@ -44,14 +44,15 @@ async function _anthropic(apiKey, prompt, maxTokens = 400) {
 async function generateMessage({ clientName, productName, productCategory, dayOffset, stepLabel, focus, waTemplate }) {
   const firstName = (clientName || 'Cliente').split(' ')[0];
 
+  const produto = productName || null;
   const prompt = `Você é o assistente de relacionamento pós-venda da iSafe, revendedora Apple Premium em Criciúma, SC. Tom: amigável, próximo, profissional.
 
 Etapa: "${stepLabel}" (D+${dayOffset}) · Foco: ${focus || stepLabel}
-Cliente: ${firstName} · Produto: ${productName} · Categoria: ${productCategory || 'Apple'}
+Cliente: ${firstName}${produto ? ` · Produto: ${produto}` : ''} · Categoria: ${productCategory || 'Apple'}
 
 ${waTemplate ? `Template base (adapte, não copie):\n"""\n${waTemplate}\n"""` : ''}
 
-Regras: use "${firstName}" (nunca nome completo) · personalize para "${productName}" · use *negrito* WA · máx 3 parágrafos · convide o cliente a responder · responda SOMENTE a mensagem final.`;
+Regras: use "${firstName}" (nunca nome completo)${produto ? ` · personalize para "${produto}"` : ' · mencione produto Apple de forma genérica'} · use *negrito* WA · máx 3 parágrafos · convide o cliente a responder · responda SOMENTE a mensagem final.`;
 
   let groqKey, anthropicKey;
   try { groqKey      = await cfg.get('GROQ_API_KEY'); } catch(e) {}

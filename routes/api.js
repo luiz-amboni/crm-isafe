@@ -429,13 +429,17 @@ router.post('/winback/preview-message', async (req, res) => {
       if (productName) cl.product_name = productName;
     }
 
+    // Nunca passa placeholder genérico para a IA
+    const cleanName = /^produto\s+isafe$/i.test((cl.product_name||'').trim());
+    if (cleanName) cl.product_name = null;
+
     const message = await ai.generateMessage({
       clientName:      cl.name,
-      productName:     cl.product_name,
+      productName:     cl.product_name || null,
       productCategory: cl.product_category,
       dayOffset:       cl.days_inactive,
       stepLabel:       'Reativação Win-Back',
-      focus:           `Reativar cliente inativo há ${cl.days_inactive} dias — última compra: ${cl.product_name}`,
+      focus:           `Reativar cliente inativo há ${cl.days_inactive} dias`,
       waTemplate:      template || '',
     });
 

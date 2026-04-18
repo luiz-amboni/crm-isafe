@@ -3194,11 +3194,16 @@ function _renderWbClientCompose(c, productName, blingOrderId) {
   wbRegenMsg(c.id);
 }
 
+function _wbCleanProduct() {
+  const v = _wbActiveProduct || (_wbActiveClient?.last_product) || '';
+  return (v && !/^produto\s+isafe$/i.test(v.trim())) ? v : null;
+}
+
 function wbResetMsg() {
   const c = _wbActiveClient; if (!c) return;
   const firstName = (c.name||'').split(' ')[0];
   const template  = document.getElementById('wb-seg-template')?.value || '';
-  const msg = template.replace(/\{\{nome\}\}/g, firstName).replace(/\{\{produto\}\}/g, _wbActiveProduct||c.last_product||'seu produto');
+  const msg = template.replace(/\{\{nome\}\}/g, firstName).replace(/\{\{produto\}\}/g, _wbCleanProduct()||'seu produto');
   const ta  = document.getElementById('wb-msg-txt');
   if (ta) { ta.value = msg; wbUpdateWaLink(); }
 }
@@ -3223,7 +3228,7 @@ async function wbRegenMsg(clientId) {
     const template = document.getElementById('wb-seg-template')?.value || '';
     const res  = await apiFetch('/api/winback/preview-message', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ clientId: c.id, template, productName: _wbActiveProduct || c.last_product }),
+      body: JSON.stringify({ clientId: c.id, template, productName: _wbCleanProduct() }),
     });
     const data = await res.json();
     if (data.message) { ta.value = data.message; wbUpdateWaLink(); btn.textContent = '✨ Regenerar'; }
