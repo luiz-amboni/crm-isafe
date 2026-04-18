@@ -325,6 +325,40 @@ router.get('/winback/segments', async (req, res) => {
   }
 });
 
+// GET /api/winback/contacted?days=90&max_days=180 — clientes já contactados neste segmento
+router.get('/winback/contacted', async (req, res) => {
+  try {
+    const days    = parseInt(req.query.days    || '90');
+    const maxDays = parseInt(req.query.max_days || '9999');
+
+    const { rows } = await query(`
+      SELECT
+        c.id, c.name, c.phone, c.email, c.city,
+        MAX(ml.sent_at)                                                    AS contacted_at,
+        (SELECT ml2.wa_message FROM message_log ml2
+         WHERE ml2.client_id = c.id AND ml2.channel = 'winback'
+         ORDER BY ml2.sent_at DESC LIMIT 1)                                AS last_message,
+        (SELECT o2.product_name FROM orders o2
+         WHERE o2.client_id = c.id ORDER BY o2.ordered_at DESC LIMIT 1)   AS last_product,
+        DATE_PART('day', NOW() - MAX(o.ordered_at))::int                   AS days_inactive,
+        COUNT(DISTINCT o.id)::int                                          AS total_orders,
+        SUM(o.amount)::numeric(10,2)                                       AS total_spent
+      FROM clients c
+      JOIN orders o ON o.client_id = c.id
+      JOIN message_log ml ON ml.client_id = c.id
+        AND ml.channel = 'winback' AND ml.status = 'sent'
+      GROUP BY c.id
+      HAVING DATE_PART('day', NOW() - MAX(o.ordered_at)) BETWEEN $1 AND $2
+      ORDER BY MAX(ml.sent_at) DESC
+      LIMIT 300
+    `, [days, maxDays]);
+
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/winback/clients?days=90&max_days=180&limit=50&vendedor=Nome
 router.get('/winback/clients', async (req, res) => {
   try {

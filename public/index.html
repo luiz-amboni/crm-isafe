@@ -976,6 +976,12 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
       <button class="bulk-btn" onclick="_wbClearSelection()">✕ Limpar</button>
     </div>
 
+    <!-- Abas pendentes / contactados -->
+    <div class="asp-tabs" style="margin-bottom:12px">
+      <div class="asp-tab active" id="wb-tab-pending"   onclick="switchWbTab('pending',this)">Pendentes <span id="wb-badge-pending"  style="font-size:10px;color:var(--t3)"></span></div>
+      <div class="asp-tab"        id="wb-tab-contacted" onclick="switchWbTab('contacted',this)">Contactados <span id="wb-badge-contacted" style="font-size:10px;color:var(--t3)"></span></div>
+    </div>
+
     <!-- Split layout -->
     <div class="asp-split">
       <div class="asp-list-col">
@@ -2800,9 +2806,13 @@ async function loadWinback() {
 }
 
 // ── STATE ─────────────────────────────────────────────────────
-let _wbSegKey     = null;
-let _wbClients    = [];
-let _wbVendedor   = 'all';
+let _wbSegKey       = null;
+let _wbClients      = [];
+let _wbContacted    = [];
+let _wbTab          = 'pending';
+let _wbClientOrders = [];
+let _wbActiveProduct = null;
+let _wbVendedor     = 'all';
 let _wbActiveClient = null;
 
 const WB_SEG_CFG = {
@@ -2815,7 +2825,14 @@ async function openWbSeg(segKey) {
   _wbSegKey = segKey;
   _wbVendedor = 'all';
   _wbActiveClient = null;
+  _wbActiveProduct = null;
   _wbClients = [];
+  _wbContacted = [];
+  _wbTab = 'pending';
+  document.getElementById('wb-tab-pending')?.classList.add('active');
+  document.getElementById('wb-tab-contacted')?.classList.remove('active');
+  document.getElementById('wb-badge-pending').textContent = '';
+  document.getElementById('wb-badge-contacted').textContent = '';
   const cfg = WB_SEG_CFG[segKey];
 
   document.getElementById('wb-list-view').style.display = 'none';
@@ -2853,6 +2870,78 @@ function closeWbSeg() {
   document.getElementById('wb-seg-view').style.display  = 'none';
   document.getElementById('wb-list-view').style.display = 'block';
   _wbActiveClient = null; _wbSelected.clear();
+}
+
+async function switchWbTab(tab, el) {
+  _wbTab = tab;
+  _wbActiveClient = null;
+  document.querySelectorAll('.asp-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('wb-detail').innerHTML = '<div style="text-align:center;padding:44px 20px;color:var(--t3)"><div style="font-size:36px;margin-bottom:12px">👈</div><div style="font-size:13px;font-weight:600;color:var(--t2)">Selecione um cliente</div></div>';
+
+  if (tab === 'contacted') {
+    if (_wbContacted.length === 0) await _loadWbContacted();
+    _renderWbContactedList();
+  } else {
+    _renderWbClientList();
+  }
+}
+
+async function _loadWbContacted() {
+  const cfg = WB_SEG_CFG[_wbSegKey];
+  if (!cfg) return;
+  try {
+    const res = await apiFetch(`/api/winback/contacted?days=${cfg.days}&max_days=${cfg.maxDays}`);
+    _wbContacted = await res.json();
+    document.getElementById('wb-badge-contacted').textContent = `(${_wbContacted.length})`;
+  } catch(e) { console.warn('loadWbContacted:', e.message); }
+}
+
+function _renderWbContactedList() {
+  const el = document.getElementById('wb-client-list');
+  // Esconde bulk bar — contactados são só leitura
+  document.getElementById('wb-bulk-bar').style.display = 'none';
+
+  if (!_wbContacted.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--t3);padding:40px;font-size:13px">Nenhum cliente contactado ainda.</div>';
+    return;
+  }
+  el.innerHTML = `<div class="sel-all-row" style="cursor:default"><span>${_wbContacted.length} cliente${_wbContacted.length!==1?'s':''} contactado${_wbContacted.length!==1?'s':''}</span></div>`
+    + _wbContacted.map(c => {
+      const initials   = (c.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
+      const dateStr    = c.contacted_at ? new Date(c.contacted_at).toLocaleDateString('pt-BR') : '--';
+      return `<div class="asp-cl-row" onclick="openWbContactedDetail(${c.id})">
+        <div class="asp-cl-av" style="background:var(--success);opacity:.7">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div class="asp-cl-name">${escHtml(c.name)}</div>
+          <div class="asp-cl-sub">${trunc(c.last_product||'—')} · <strong style="color:var(--success)">contactado em ${dateStr}</strong></div>
+        </div>
+        <div style="font-size:10px;color:var(--t3);flex-shrink:0">${c.days_inactive}d inativo</div>
+      </div>`;
+    }).join('');
+}
+
+function openWbContactedDetail(clientId) {
+  const c = _wbContacted.find(x => x.id === clientId);
+  if (!c) return;
+  document.querySelectorAll('.asp-cl-row').forEach(r => r.classList.remove('selected'));
+  document.getElementById('wb-client-list').querySelector(`[onclick="openWbContactedDetail(${clientId})"]`)?.classList.add('selected');
+  const detail  = document.getElementById('wb-detail');
+  const initials = (c.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
+  const dateStr  = c.contacted_at ? new Date(c.contacted_at).toLocaleString('pt-BR') : '--';
+  detail.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--success),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700;flex-shrink:0">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:700;color:var(--navy)">${escHtml(c.name)}</div>
+        <div style="font-size:11px;color:var(--success);margin-top:2px">✓ Contactado em ${dateStr}</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:10px"><strong>Último produto:</strong> ${escHtml(c.last_product||'—')}</div>
+    ${c.last_message ? `
+    <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">💬 Mensagem enviada</div>
+    <div style="background:var(--bg3);border-radius:8px;padding:12px;font-size:12px;color:var(--t2);white-space:pre-wrap;line-height:1.6">${escHtml(c.last_message)}</div>
+    ` : ''}`;
 }
 
 function toggleWbTemplate() {
@@ -2947,13 +3036,65 @@ async function openWbClientDetail(clientId) {
   const rowEl = document.getElementById(`wb-cl-${c.id}`);
   if (rowEl) rowEl.classList.add('selected');
 
+  if (c.total_orders > 1) {
+    await _showWbOrderPicker(c);
+  } else {
+    _renderWbClientCompose(c, c.last_product, c.bling_order_id);
+  }
+}
+
+async function _showWbOrderPicker(c) {
+  const detail   = document.getElementById('wb-detail');
+  const initials = (c.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
+  const fmt      = v => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0});
+
+  detail.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--teal),var(--navy));display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700;flex-shrink:0">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:700;color:var(--navy)">${escHtml(c.name)}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">${c.total_orders} compras · ${c.days_inactive} dias sem comprar</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Selecione a compra para personalizar a mensagem</div>
+    <div id="wb-order-picker" style="color:var(--t3);font-size:13px;padding:10px 0">Carregando...</div>`;
+
+  const detTop = detail.getBoundingClientRect().top + window.scrollY - 80;
+  window.scrollTo({ top: detTop, behavior: 'smooth' });
+
+  try {
+    const res  = await apiFetch(`/api/clients/${c.id}`);
+    const data = await res.json();
+    _wbClientOrders = data.orders || [];
+    document.getElementById('wb-order-picker').innerHTML = _wbClientOrders.map((o, idx) => `
+      <div class="asp-cl-row" style="cursor:pointer" onclick="_selectWbOrder(${idx})">
+        <div style="flex:1;min-width:0">
+          <div class="asp-cl-name">${escHtml(trunc(o.product_name||'—', 45))}</div>
+          <div class="asp-cl-sub">${o.ordered_at ? new Date(o.ordered_at).toLocaleDateString('pt-BR') : '--'} · ${fmt(o.amount)}</div>
+        </div>
+        <div style="flex-shrink:0">${blingLink(o.bling_order_id)}</div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('wb-order-picker').innerHTML = `<div style="color:var(--danger);font-size:13px">Erro: ${e.message}</div>`;
+  }
+}
+
+function _selectWbOrder(idx) {
+  const c = _wbActiveClient;
+  const o = _wbClientOrders[idx];
+  if (!c || !o) return;
+  _renderWbClientCompose(c, o.product_name, o.bling_order_id);
+}
+
+function _renderWbClientCompose(c, productName, blingOrderId) {
+  _wbActiveProduct = productName || c.last_product || null;
   const fmt      = v => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0});
   const initials = (c.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
   const firstName = (c.name||'').split(' ')[0];
   const template  = document.getElementById('wb-seg-template')?.value || '';
   const defaultMsg = template
     .replace(/\{\{nome\}\}/g, firstName)
-    .replace(/\{\{produto\}\}/g, c.last_product || 'seu produto');
+    .replace(/\{\{produto\}\}/g, _wbActiveProduct || 'seu produto');
 
   const canSend = !!c.phone;
   const detail  = document.getElementById('wb-detail');
@@ -2980,7 +3121,8 @@ async function openWbClientDetail(clientId) {
         <div style="font-size:16px;font-weight:800;color:#ef4444;margin-top:2px">${c.days_inactive}d</div>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--t2);margin-bottom:4px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="expandOrderItems('wb${c.id}','${c.bling_order_id||''}')"><span><strong>Último produto:</strong> ${trunc(c.last_product||'—',50)}</span> <span style="color:var(--t3);font-size:10px">▾ ver itens</span> ${blingLink(c.bling_order_id)}</div>
+    ${c.total_orders > 1 ? `<div style="margin-bottom:8px"><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="_showWbOrderPicker(_wbActiveClient)">← Outras compras</button></div>` : ''}
+    <div style="font-size:11px;color:var(--t2);margin-bottom:4px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="expandOrderItems('wb${c.id}','${escHtml(blingOrderId||'')}')"><span><strong>Produto:</strong> ${trunc(_wbActiveProduct||'—',50)}</span> <span style="color:var(--t3);font-size:10px">▾ ver itens</span> ${blingLink(blingOrderId)}</div>
     <div id="oi-wb${c.id}" style="display:none;margin-bottom:10px"></div>
     <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">💬 Mensagem personalizada</div>
     <textarea class="asp-msg-area" id="wb-msg-txt" oninput="wbUpdateWaLink()">${escHtml(defaultMsg)}</textarea>
@@ -2994,11 +3136,9 @@ async function openWbClientDetail(clientId) {
       : `<div style="font-size:12px;color:var(--warn);text-align:center;padding:8px;background:rgba(245,158,11,.08);border-radius:8px;margin-bottom:8px">⚠ Cliente sem telefone cadastrado</div>`}
     <button class="btn btn-ghost" id="wb-mark-btn" onclick="wbMarkContacted(${c.id})" style="border-color:var(--success);color:var(--success);width:100%">✓ Marcar como contatado</button>`;
 
-  // Rola para mostrar o card (funciona em qualquer tamanho de tela)
   const detTop = detail.getBoundingClientRect().top + window.scrollY - 80;
   window.scrollTo({ top: detTop, behavior: 'smooth' });
 
-  // Auto-gera com IA
   wbRegenMsg(c.id);
 }
 
@@ -3006,7 +3146,7 @@ function wbResetMsg() {
   const c = _wbActiveClient; if (!c) return;
   const firstName = (c.name||'').split(' ')[0];
   const template  = document.getElementById('wb-seg-template')?.value || '';
-  const msg = template.replace(/\{\{nome\}\}/g, firstName).replace(/\{\{produto\}\}/g, c.last_product||'seu produto');
+  const msg = template.replace(/\{\{nome\}\}/g, firstName).replace(/\{\{produto\}\}/g, _wbActiveProduct||c.last_product||'seu produto');
   const ta  = document.getElementById('wb-msg-txt');
   if (ta) { ta.value = msg; wbUpdateWaLink(); }
 }
