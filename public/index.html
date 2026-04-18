@@ -2299,10 +2299,9 @@ async function openClientDetail(pipelineId, tab) {
     <div style="font-size:12px;color:var(--t3);text-align:center;padding:20px;background:var(--bg3);border-radius:8px">Nenhum template WhatsApp configurado.<br><a href="#" onclick="document.getElementById('asp-edit-btn').click()" style="color:var(--teal)">Editar etapa →</a></div>
     `}`;
 
-  // Rola para o card em mobile (coluna única)
-  if (window.innerWidth <= 900) {
-    det.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  // Rola para mostrar o card (funciona em qualquer tamanho de tela)
+  const detTop = det.getBoundingClientRect().top + window.scrollY - 80;
+  window.scrollTo({ top: detTop, behavior: 'smooth' });
 }
 
 function aspResetTemplate() {
@@ -2998,10 +2997,9 @@ async function openWbClientDetail(clientId) {
       : `<div style="font-size:12px;color:var(--warn);text-align:center;padding:8px;background:rgba(245,158,11,.08);border-radius:8px;margin-bottom:8px">⚠ Cliente sem telefone cadastrado</div>`}
     <button class="btn btn-ghost" id="wb-mark-btn" onclick="wbMarkContacted(${c.id})" style="border-color:var(--success);color:var(--success);width:100%">✓ Marcar como contatado</button>`;
 
-  // Rola para o card em mobile (coluna única)
-  if (window.innerWidth <= 900) {
-    detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  // Rola para mostrar o card (funciona em qualquer tamanho de tela)
+  const detTop = detail.getBoundingClientRect().top + window.scrollY - 80;
+  window.scrollTo({ top: detTop, behavior: 'smooth' });
 
   // Auto-gera com IA
   wbRegenMsg(c.id);
