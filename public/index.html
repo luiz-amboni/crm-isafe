@@ -1224,6 +1224,127 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
   </div>
 </div>
 
+<!-- ══ MINHA CONTA ══ -->
+<div class="panel" id="panel-conta">
+  <div class="sh">
+    <div><h2>Minha Conta</h2><p>Perfil, segurança e histórico de mensagens</p></div>
+  </div>
+
+  <div class="cfg-grid" style="margin-bottom:20px">
+
+    <!-- Perfil -->
+    <div class="card" style="overflow:hidden">
+      <div class="ch">Perfil</div>
+      <div style="padding:20px;display:flex;align-items:center;gap:18px">
+        <div class="ac-avatar" id="ac-avatar-big" style="width:64px;height:64px;font-size:22px;border-radius:14px;flex-shrink:0">IS</div>
+        <div>
+          <div id="ac-username-display" style="font-size:17px;font-weight:700;color:var(--navy);line-height:1.2">admin</div>
+          <div id="ac-role-display" style="font-size:12px;color:var(--t3);margin-top:4px">Administrador · Acesso total</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Troca de senha -->
+    <div class="card" style="overflow:hidden">
+      <div class="ch">Alterar Senha</div>
+      <div style="padding:18px;display:flex;flex-direction:column;gap:12px">
+        <div>
+          <div class="cfg-label">Senha atual</div>
+          <input id="pw-current" type="password" class="cfg-inp" style="width:100%" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <div>
+          <div class="cfg-label">Nova senha</div>
+          <input id="pw-new" type="password" class="cfg-inp" style="width:100%" placeholder="Mín. 6 caracteres" autocomplete="new-password">
+        </div>
+        <div>
+          <div class="cfg-label">Confirmar nova senha</div>
+          <input id="pw-confirm" type="password" class="cfg-inp" style="width:100%" placeholder="Repita a nova senha" autocomplete="new-password">
+        </div>
+        <div id="pw-error" style="display:none;color:var(--danger);font-size:12px;padding:6px 10px;background:rgba(239,68,68,.08);border-radius:7px"></div>
+        <div id="pw-ok" style="display:none;color:var(--success);font-size:12px;padding:6px 10px;background:rgba(34,197,94,.08);border-radius:7px">✅ Senha alterada com sucesso!</div>
+        <button class="btn btn-teal btn-sm" id="pw-save-btn" onclick="changePassword()" style="align-self:flex-start">Salvar nova senha</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Histórico de mensagens -->
+  <div class="card">
+    <div style="padding:14px 16px 12px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">Histórico de Mensagens</div>
+        <div id="hist-total" style="font-size:11px;color:var(--t3);margin-top:2px"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="hist-filter-status" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:32px" onchange="loadAccountHistory(1)">
+          <option value="">Todos os status</option>
+          <option value="sent">✅ Enviado</option>
+          <option value="failed">❌ Falhou</option>
+          <option value="skipped">⚪ Pulado</option>
+        </select>
+        <select id="hist-filter-channel" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:32px" onchange="loadAccountHistory(1)">
+          <option value="">Todos os canais</option>
+          <option value="whatsapp">💬 WhatsApp</option>
+          <option value="email">📧 Email</option>
+          <option value="both">Ambos</option>
+          <option value="winback">↩ Reativação</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadAccountHistory(1)">⟳</button>
+      </div>
+    </div>
+    <div class="hist-row" style="border-bottom:2px solid var(--bdr);background:var(--bg3)">
+      <div></div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">Cliente · Produto</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);text-align:right">Etapa</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);text-align:right">Status</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);text-align:right">Data</div>
+    </div>
+    <div id="hist-body"><div style="text-align:center;color:var(--t3);padding:30px;font-size:13px">Carregando histórico...</div></div>
+    <div id="hist-pagination" style="display:flex;justify-content:center;gap:8px;padding:14px;flex-wrap:wrap"></div>
+  </div>
+</div>
+
+<!-- ══ USUÁRIOS ══ -->
+<div class="panel" id="panel-usuarios">
+  <div class="sh">
+    <div><h2>Usuários</h2><p>Gerencie quem tem acesso ao CRM e veja o histórico de atividades</p></div>
+    <button class="btn btn-teal btn-sm" onclick="openUserModal()">+ Novo usuário</button>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="ch">Usuários cadastrados</div>
+    <div id="users-list-body">
+      <div style="text-align:center;color:var(--t3);padding:30px;font-size:13px">Carregando...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="padding:14px 16px 12px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="font-size:13px;font-weight:700;color:var(--navy)">Log de Atividades</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="actlog-total" style="font-size:11px;color:var(--t3)"></span>
+        <button class="btn btn-ghost btn-sm" onclick="loadActivityLog(0)">⟳ Atualizar</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:var(--bg3)">
+            <th style="padding:8px 14px;text-align:left;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Usuário</th>
+            <th style="padding:8px 14px;text-align:left;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Ação</th>
+            <th style="padding:8px 14px;text-align:left;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Detalhes</th>
+            <th style="padding:8px 14px;text-align:right;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Data/Hora</th>
+          </tr>
+        </thead>
+        <tbody id="actlog-body">
+          <tr><td colspan="4" style="text-align:center;color:var(--t3);padding:30px">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="actlog-pagination" style="display:flex;justify-content:center;gap:8px;padding:14px;flex-wrap:wrap"></div>
+  </div>
+</div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -1478,131 +1599,6 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
     <div id="tp-list" style="flex:1;overflow-y:auto;padding:8px 0">
       <div style="text-align:center;color:var(--t3);padding:30px">Carregando...</div>
     </div>
-  </div>
-</div>
-
-<!-- ══ MINHA CONTA ══ -->
-<div class="panel" id="panel-conta">
-  <div class="sh">
-    <div><h2>Minha Conta</h2><p>Perfil, segurança e histórico de mensagens</p></div>
-  </div>
-
-  <!-- Card de perfil + senha lado a lado em tela grande, empilhados em mobile -->
-  <div class="cfg-grid" style="margin-bottom:20px">
-
-    <!-- Perfil -->
-    <div class="card" style="overflow:hidden">
-      <div class="ch">Perfil</div>
-      <div style="padding:20px;display:flex;align-items:center;gap:18px">
-        <div class="ac-avatar" id="ac-avatar-big" style="width:64px;height:64px;font-size:22px;border-radius:14px;flex-shrink:0">IS</div>
-        <div>
-          <div id="ac-username-display" style="font-size:17px;font-weight:700;color:var(--navy);line-height:1.2">admin</div>
-          <div id="ac-role-display" style="font-size:12px;color:var(--t3);margin-top:4px">Administrador · Acesso total</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Troca de senha -->
-    <div class="card" style="overflow:hidden">
-      <div class="ch">Alterar Senha</div>
-      <div style="padding:18px;display:flex;flex-direction:column;gap:12px">
-        <div>
-          <div class="cfg-label">Senha atual</div>
-          <input id="pw-current" type="password" class="cfg-inp" style="width:100%" placeholder="••••••••" autocomplete="current-password">
-        </div>
-        <div>
-          <div class="cfg-label">Nova senha</div>
-          <input id="pw-new" type="password" class="cfg-inp" style="width:100%" placeholder="Mín. 6 caracteres" autocomplete="new-password">
-        </div>
-        <div>
-          <div class="cfg-label">Confirmar nova senha</div>
-          <input id="pw-confirm" type="password" class="cfg-inp" style="width:100%" placeholder="Repita a nova senha" autocomplete="new-password">
-        </div>
-        <div id="pw-error" style="display:none;color:var(--danger);font-size:12px;padding:6px 10px;background:rgba(239,68,68,.08);border-radius:7px"></div>
-        <div id="pw-ok" style="display:none;color:var(--success);font-size:12px;padding:6px 10px;background:rgba(34,197,94,.08);border-radius:7px">✅ Senha alterada com sucesso!</div>
-        <button class="btn btn-teal btn-sm" id="pw-save-btn" onclick="changePassword()" style="align-self:flex-start">Salvar nova senha</button>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Histórico de mensagens -->
-  <div class="card">
-    <div style="padding:14px 16px 12px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div>
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">Histórico de Mensagens</div>
-        <div id="hist-total" style="font-size:11px;color:var(--t3);margin-top:2px"></div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <select id="hist-filter-status" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:32px" onchange="loadAccountHistory(1)">
-          <option value="">Todos os status</option>
-          <option value="sent">✅ Enviado</option>
-          <option value="failed">❌ Falhou</option>
-          <option value="skipped">⚪ Pulado</option>
-        </select>
-        <select id="hist-filter-channel" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:32px" onchange="loadAccountHistory(1)">
-          <option value="">Todos os canais</option>
-          <option value="whatsapp">💬 WhatsApp</option>
-          <option value="email">📧 Email</option>
-          <option value="both">Ambos</option>
-          <option value="winback">↩ Reativação</option>
-        </select>
-        <button class="btn btn-ghost btn-sm" onclick="loadAccountHistory(1)">⟳</button>
-      </div>
-    </div>
-    <!-- Cabeçalho da tabela -->
-    <div class="hist-row" style="border-bottom:2px solid var(--bdr);background:var(--bg3)">
-      <div></div>
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">Cliente · Produto</div>
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);text-align:right">Etapa</div>
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);text-align:right">Status</div>
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);text-align:right">Data</div>
-    </div>
-    <div id="hist-body"><div style="text-align:center;color:var(--t3);padding:30px;font-size:13px">Carregando histórico...</div></div>
-    <div id="hist-pagination" style="display:flex;justify-content:center;gap:8px;padding:14px;flex-wrap:wrap"></div>
-  </div>
-</div>
-
-<!-- ══ USUÁRIOS ══ -->
-<div class="panel" id="panel-usuarios">
-  <div class="sh">
-    <div><h2>Usuários</h2><p>Gerencie quem tem acesso ao CRM e veja o histórico de atividades</p></div>
-    <button class="btn btn-teal btn-sm" onclick="openUserModal()">+ Novo usuário</button>
-  </div>
-
-  <!-- Lista de usuários -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="ch">Usuários cadastrados</div>
-    <div id="users-list-body">
-      <div style="text-align:center;color:var(--t3);padding:30px;font-size:13px">Carregando...</div>
-    </div>
-  </div>
-
-  <!-- Log de atividades -->
-  <div class="card">
-    <div class="sh" style="padding:14px 16px 0">
-      <div><div class="ch" style="border:none;padding:0;margin:0">Log de Atividades</div></div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span id="actlog-total" style="font-size:12px;color:var(--t3)"></span>
-        <button class="btn btn-ghost btn-sm" onclick="loadActivityLog(0)">⟳ Atualizar</button>
-      </div>
-    </div>
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead>
-          <tr style="background:var(--bg3)">
-            <th style="padding:8px 14px;text-align:left;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Usuário</th>
-            <th style="padding:8px 14px;text-align:left;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Ação</th>
-            <th style="padding:8px 14px;text-align:left;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Detalhes</th>
-            <th style="padding:8px 14px;text-align:right;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Data/Hora</th>
-          </tr>
-        </thead>
-        <tbody id="actlog-body">
-          <tr><td colspan="4" style="text-align:center;color:var(--t3);padding:30px">Carregando...</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div id="actlog-pagination" style="display:flex;justify-content:center;gap:8px;padding:14px;flex-wrap:wrap"></div>
   </div>
 </div>
 
