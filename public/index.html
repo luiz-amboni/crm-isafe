@@ -541,11 +541,11 @@ select.cfg-inp{font-family:inherit;cursor:pointer}
     <div style="display:flex;flex-direction:column;gap:14px">
       <div>
         <label style="font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:5px">Usuário</label>
-        <input id="login-user" type="text" class="cfg-inp" style="width:100%" autocomplete="off" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+        <input id="login-user" type="text" class="cfg-inp" style="width:100%" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
       </div>
       <div>
         <label style="font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:5px">Senha</label>
-        <input id="login-pass" type="password" class="cfg-inp" style="width:100%" autocomplete="new-password" onkeydown="if(event.key==='Enter')doLogin()">
+        <input id="login-pass" type="password" class="cfg-inp" style="width:100%" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <div id="login-error" class="login-error"></div>
       <button id="login-btn" onclick="doLogin()" class="btn btn-teal" style="width:100%;padding:11px;font-size:14px;font-weight:600;margin-top:2px">Entrar</button>
@@ -1796,7 +1796,12 @@ async function checkAuth() {
 }
 
 function _showLogin() {
+  const u = document.getElementById('login-user');
+  const p = document.getElementById('login-pass');
+  if (u) { u.value = ''; u.setAttribute('readonly', ''); }
+  if (p) { p.value = ''; p.setAttribute('readonly', ''); }
   document.getElementById('login-screen').style.display = 'flex';
+  setTimeout(() => { if (u) u.focus(); }, 100);
 }
 
 function _hideLogin() {
