@@ -29,6 +29,7 @@ const PORT = process.env.PORT || 3000;
 
 // ── SEGURANÇA ──────────────────────────────────────────────────────────────
 
+app.set('trust proxy', 1); // app roda atrás de proxy (nginx/Docker)
 app.use(helmet({ contentSecurityPolicy: false })); // dashboard usa inline scripts
 
 const allowedOrigins = ['http://localhost:3000', 'http://localhost:5173'];
