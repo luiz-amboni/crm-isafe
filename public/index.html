@@ -762,6 +762,16 @@ select.cfg-inp{font-family:inherit;cursor:pointer}
   </div>
   <div class="srch">
     <input class="srch-inp" placeholder="🔍  Nome, produto, telefone ou vendedor..." oninput="filterSearch(this.value)">
+    <select id="cl-sort" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:36px;min-width:180px" onchange="curSort=this.value;curPage=1;loadClients()">
+      <option value="ordered_at_desc">📅 Mais recente</option>
+      <option value="ordered_at_asc">📅 Mais antigo</option>
+      <option value="name_asc">🔤 Nome A→Z</option>
+      <option value="name_desc">🔤 Nome Z→A</option>
+      <option value="amount_desc">💰 Maior valor</option>
+      <option value="amount_asc">💰 Menor valor</option>
+      <option value="messages_desc">✉ Mais mensagens</option>
+      <option value="days_asc">⏱ D+ mais próximo</option>
+    </select>
     <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV</button>
   </div>
 
@@ -3804,7 +3814,7 @@ async function loadDashboard() {
 // ── CLIENTES (dados reais) ────────────────────────────────────
 const SL = {d3:'D+3',d14:'D+14',d30:'D+30',d60:'D+60',d90:'D+90',d160:'D+160'};
 const SC = {d3:'s3', d14:'s14', d30:'s30', d60:'s60', d90:'s90', d160:'s160'};
-let curStage='all', curSearch='', curPhone='', curContacted='', curVendedor='', curPage=1;
+let curStage='all', curSearch='', curPhone='', curContacted='', curVendedor='', curPage=1, curSort='ordered_at_desc';
 let _clientsStale = false; // sinaliza que os dados de clientes precisam ser recarregados
 
 // Carrega vendedores do banco para o filtro dinâmico
@@ -3846,6 +3856,7 @@ async function loadClients(page) {
   if (curPhone)       params.set('has_phone', curPhone);
   if (curContacted)   params.set('contacted', curContacted);
   if (curVendedor)    params.set('vendedor', curVendedor);
+  if (curSort)        params.set('sort', curSort);
   try {
     const res  = await apiFetch(`/api/clients?${params}`);
     const data = await res.json();

@@ -118,7 +118,7 @@ async function getRecentOrders(limit = 12) {
 // CLIENTES
 // ════════════════════════════════════════════════════
 
-// GET /api/clients?page=1&limit=20&stage=d3&search=&has_phone=true&contacted=yes&vendedor=Nome&order_status=aprovado
+// GET /api/clients?page=1&limit=20&stage=d3&search=&has_phone=true&contacted=yes&vendedor=Nome&sort=ordered_at_desc
 router.get('/clients', async (req, res) => {
   try {
     const page   = parseInt(req.query.page  || '1');
@@ -129,6 +129,18 @@ router.get('/clients', async (req, res) => {
     const hasPhone    = req.query.has_phone;
     const contacted   = req.query.contacted;
     const vendedor    = req.query.vendedor;
+
+    const SORT_MAP = {
+      ordered_at_desc:  'ordered_at DESC',
+      ordered_at_asc:   'ordered_at ASC',
+      name_asc:         'name ASC',
+      name_desc:        'name DESC',
+      amount_desc:      'amount DESC NULLS LAST',
+      amount_asc:       'amount ASC NULLS LAST',
+      messages_desc:    'messages_sent DESC',
+      days_asc:         'days_since ASC',
+    };
+    const sortExpr = SORT_MAP[req.query.sort] || 'ordered_at DESC';
 
     // Base: apenas pedidos Atendidos (única fonte de dados após simplificação do sync)
     let whereClause = `WHERE o.client_id IS NOT NULL AND o.status = 'Atendido'`;
@@ -170,36 +182,39 @@ router.get('/clients', async (req, res) => {
     }
 
     const { rows } = await query(`
-      SELECT DISTINCT ON (c.id)
-        p.id            AS pipeline_id,
-        c.id            AS client_id,
-        c.name, c.phone, c.email, c.city,
-        o.id            AS order_id,
-        o.bling_order_id,
-        o.order_number,
-        o.product_name,
-        o.item_count,
-        o.product_sku, o.product_category, o.amount,
-        o.status        AS order_status,
-        o.vendedor,
-        o.ordered_at,
-        DATE_PART('day', NOW() - o.ordered_at)::int AS days_since,
-        (
-          SELECT s.day_offset
-          FROM automation_steps s
-          WHERE s.day_offset > DATE_PART('day', NOW() - o.ordered_at)
-            AND s.is_active = true
-          ORDER BY s.day_offset LIMIT 1
-        ) AS next_step_day,
-        COALESCE((
-          SELECT COUNT(*) FROM message_log ml
-          WHERE ml.pipeline_id = p.id AND ml.status = 'sent'
-        ), 0)::int AS messages_sent
-      FROM clients c
-      JOIN orders  o ON o.client_id = c.id
-      LEFT JOIN pipeline p ON p.order_id = o.id
-      ${whereClause}
-      ORDER BY c.id, o.ordered_at DESC
+      SELECT * FROM (
+        SELECT DISTINCT ON (c.id)
+          p.id            AS pipeline_id,
+          c.id            AS client_id,
+          c.name, c.phone, c.email, c.city,
+          o.id            AS order_id,
+          o.bling_order_id,
+          o.order_number,
+          o.product_name,
+          o.item_count,
+          o.product_sku, o.product_category, o.amount,
+          o.status        AS order_status,
+          o.vendedor,
+          o.ordered_at,
+          DATE_PART('day', NOW() - o.ordered_at)::int AS days_since,
+          (
+            SELECT s.day_offset
+            FROM automation_steps s
+            WHERE s.day_offset > DATE_PART('day', NOW() - o.ordered_at)
+              AND s.is_active = true
+            ORDER BY s.day_offset LIMIT 1
+          ) AS next_step_day,
+          COALESCE((
+            SELECT COUNT(*) FROM message_log ml
+            WHERE ml.pipeline_id = p.id AND ml.status = 'sent'
+          ), 0)::int AS messages_sent
+        FROM clients c
+        JOIN orders  o ON o.client_id = c.id
+        LEFT JOIN pipeline p ON p.order_id = o.id
+        ${whereClause}
+        ORDER BY c.id, o.ordered_at DESC
+      ) sub
+      ORDER BY ${sortExpr}
       LIMIT $${pi} OFFSET $${pi+1}
     `, [...params, limit, offset]);
 
