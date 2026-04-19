@@ -33,7 +33,15 @@ router.get('/campaigns', async (req, res) => {
     `;
     const params = [];
     if (channel) { sql += ` WHERE c.channel = $1`; params.push(channel); }
-    sql += ` ORDER BY c.created_at DESC`;
+    const CAMP_SORT = {
+      created_desc: 'c.created_at DESC',
+      created_asc:  'c.created_at ASC',
+      name_asc:     'c.name ASC',
+      name_desc:    'c.name DESC',
+      sent_desc:    'sent_count DESC',
+      status:       'c.status ASC, c.created_at DESC',
+    };
+    sql += ` ORDER BY ${CAMP_SORT[req.query.sort] || 'c.created_at DESC'}`;
     const { rows } = await query(sql, params);
     res.json(rows);
   } catch (err) {

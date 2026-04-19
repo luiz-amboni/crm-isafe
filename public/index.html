@@ -830,7 +830,16 @@ select.cfg-inp{font-family:inherit;cursor:pointer}
 <div class="panel" id="panel-whatsapp-mkt">
   <div class="sh">
     <div><h2>WhatsApp Marketing</h2><p>Campanhas manuais e automáticas via WhatsApp</p></div>
-    <button class="btn btn-teal" onclick="openCampaignModal('whatsapp')">+ Nova campanha</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="wa-camp-sort" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:36px" onchange="loadCampaigns('whatsapp')">
+        <option value="created_desc">📅 Mais recente</option>
+        <option value="created_asc">📅 Mais antiga</option>
+        <option value="name_asc">🔤 Nome A→Z</option>
+        <option value="sent_desc">📨 Mais enviadas</option>
+        <option value="status">📊 Status</option>
+      </select>
+      <button class="btn btn-teal" onclick="openCampaignModal('whatsapp')">+ Nova campanha</button>
+    </div>
   </div>
   <div id="wa-camp-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
   <div id="wa-camp-list"><div style="text-align:center;color:var(--t3);padding:40px;font-size:13px">Carregando campanhas...</div></div>
@@ -840,7 +849,16 @@ select.cfg-inp{font-family:inherit;cursor:pointer}
 <div class="panel" id="panel-email-mkt">
   <div class="sh">
     <div><h2>Email Marketing</h2><p>Campanhas manuais e automáticas via e-mail</p></div>
-    <button class="btn btn-teal" onclick="openCampaignModal('email')">+ Nova campanha</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="em-camp-sort" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:36px" onchange="loadCampaigns('email')">
+        <option value="created_desc">📅 Mais recente</option>
+        <option value="created_asc">📅 Mais antiga</option>
+        <option value="name_asc">🔤 Nome A→Z</option>
+        <option value="sent_desc">📨 Mais enviadas</option>
+        <option value="status">📊 Status</option>
+      </select>
+      <button class="btn btn-teal" onclick="openCampaignModal('email')">+ Nova campanha</button>
+    </div>
   </div>
   <div id="em-camp-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
   <div id="em-camp-list"><div style="text-align:center;color:var(--t3);padding:40px;font-size:13px">Carregando campanhas...</div></div>
@@ -971,8 +989,18 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
       </div>
     </div>
 
-    <!-- Vendor filter -->
-    <div class="filter-strip" id="wb-vendor-filter" style="margin-bottom:14px"></div>
+    <!-- Vendor filter + ordenação -->
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <div class="filter-strip" id="wb-vendor-filter" style="margin-bottom:0;flex:1;min-width:0"></div>
+      <select id="wb-sort-sel" class="cfg-inp" style="padding:4px 8px;font-size:12px;height:30px;flex-shrink:0" onchange="_wbSort=this.value;_renderWbClientList()">
+        <option value="days_desc">⏱ Mais inativo</option>
+        <option value="days_asc">⏱ Menos inativo</option>
+        <option value="name_asc">🔤 Nome A→Z</option>
+        <option value="name_desc">🔤 Nome Z→A</option>
+        <option value="amount_desc">💰 Maior valor</option>
+        <option value="orders_desc">📦 Mais pedidos</option>
+      </select>
+    </div>
     <div id="wb-bulk-bar" class="bulk-bar" style="display:none">
       <span class="bulk-bar-info" id="wb-bulk-info"></span>
       <button class="bulk-btn" onclick="_wbSelectAll()">Selecionar todos</button>
@@ -1307,6 +1335,12 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
         </select>
         <select id="hist-filter-sender" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:32px" onchange="loadAccountHistory(1)">
           <option value="">Todos os usuários</option>
+        </select>
+        <select id="hist-sort" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:32px" onchange="loadAccountHistory(1)">
+          <option value="date_desc">📅 Mais recente</option>
+          <option value="date_asc">📅 Mais antigo</option>
+          <option value="status">📊 Status</option>
+          <option value="channel">📡 Canal</option>
         </select>
         <button class="btn btn-ghost btn-sm" onclick="loadAccountHistory(1)">⟳</button>
       </div>
@@ -2977,6 +3011,7 @@ async function loadWinback() {
 // ── STATE ─────────────────────────────────────────────────────
 let _wbSegKey       = null;
 let _wbClients      = [];
+let _wbSort         = 'days_desc';
 let _wbContacted    = [];
 let _wbTab          = 'pending';
 let _wbClientOrders = [];
@@ -3161,8 +3196,17 @@ function _wbSetVendedor(v, el) {
 
 function _renderWbClientList() {
   const el   = document.getElementById('wb-client-list');
-  let data   = _wbClients;
+  let data   = [..._wbClients];
   if (_wbVendedor !== 'all') data = data.filter(c => c.vendedor === _wbVendedor);
+  const WB_SORT_FN = {
+    days_desc:   (a,b) => (b.days_inactive||0) - (a.days_inactive||0),
+    days_asc:    (a,b) => (a.days_inactive||0) - (b.days_inactive||0),
+    name_asc:    (a,b) => (a.name||'').localeCompare(b.name||''),
+    name_desc:   (a,b) => (b.name||'').localeCompare(a.name||''),
+    amount_desc: (a,b) => parseFloat(b.total_spent||0) - parseFloat(a.total_spent||0),
+    orders_desc: (a,b) => (b.total_orders||0) - (a.total_orders||0),
+  };
+  if (WB_SORT_FN[_wbSort]) data.sort(WB_SORT_FN[_wbSort]);
   const fmt  = v => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0});
 
   if (!data.length) {
@@ -4025,7 +4069,9 @@ async function loadCampaigns(channel) {
   const statsEl = document.getElementById(channel === 'whatsapp' ? 'wa-camp-stats' : 'em-camp-stats');
   const listEl  = document.getElementById(channel === 'whatsapp' ? 'wa-camp-list'  : 'em-camp-list');
   try {
-    const res  = await apiFetch(`/api/campaigns?channel=${channel}`);
+    const sortEl = document.getElementById(channel === 'whatsapp' ? 'wa-camp-sort' : 'em-camp-sort');
+    const sort   = sortEl?.value || 'created_desc';
+    const res  = await apiFetch(`/api/campaigns?channel=${channel}&sort=${sort}`);
     const camps = await res.json();
 
     // Stats globais
@@ -4856,10 +4902,12 @@ async function loadAccountHistory(page) {
   const status  = document.getElementById('hist-filter-status')?.value  || '';
   const channel = document.getElementById('hist-filter-channel')?.value || '';
   const sender  = document.getElementById('hist-filter-sender')?.value  || '';
+  const sort    = document.getElementById('hist-sort')?.value || 'date_desc';
   const params  = new URLSearchParams({ page: _histPage, limit });
   if (status)  params.set('status',  status);
   if (channel) params.set('channel', channel);
   if (sender)  params.set('triggered_by', sender);
+  if (sort)    params.set('sort', sort);
 
   document.getElementById('hist-body').innerHTML =
     '<div style="text-align:center;color:var(--t3);padding:24px;font-size:12px">Carregando...</div>';

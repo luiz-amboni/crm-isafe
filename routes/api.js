@@ -943,7 +943,7 @@ router.get('/account/history', async (req, res) => {
         LEFT JOIN orders o  ON o.id  = ml.order_id
         LEFT JOIN automation_steps s ON s.id = ml.step_id
         ${whereClause}
-        ORDER BY ml.created_at DESC
+        ORDER BY ${({ date_asc:'ml.created_at ASC', status:'ml.status ASC, ml.created_at DESC', channel:'ml.channel ASC, ml.created_at DESC' })[req.query.sort] || 'ml.created_at DESC'}
         LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}
       `, dataParams),
       query(`SELECT COUNT(*) AS total FROM message_log ml ${whereClause}`, countParams),
