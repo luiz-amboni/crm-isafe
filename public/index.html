@@ -3084,48 +3084,64 @@ async function _showWbOrderPicker(c) {
     const data = await res.json();
     _wbClientOrders = data.orders || [];
 
-    // Renderiza com nome do banco imediatamente — Bling atualiza se token válido
+    // Renderiza colapsado: produto principal + valor. Expande ao clicar em "▾ itens"
     document.getElementById('wb-order-picker').innerHTML = _wbClientOrders.map((o, idx) => {
       const nomeBanco = (o.product_name && o.product_name !== 'Produto iSafe') ? escHtml(o.product_name) : '—';
+      const data      = o.ordered_at ? new Date(o.ordered_at).toLocaleDateString('pt-BR') : '--';
       return `
-      <div class="asp-cl-row" style="cursor:pointer;flex-direction:column;align-items:flex-start;gap:4px" onclick="_selectWbOrder(${idx})">
-        <div style="display:flex;width:100%;align-items:center;gap:8px">
-          <div style="flex:1">
-            <div class="asp-cl-sub" style="font-weight:600;color:var(--t2)">${o.ordered_at ? new Date(o.ordered_at).toLocaleDateString('pt-BR') : '--'} · ${fmt(o.amount)}</div>
+      <div style="border:1px solid var(--bdr);border-radius:var(--r2);margin-bottom:6px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;background:var(--bg2)" onclick="_selectWbOrder(${idx})">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nomeBanco}</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:2px">${data} · <strong style="color:var(--teal)">${fmt(o.amount)}</strong></div>
           </div>
-          <div style="flex-shrink:0">${blingLink(o.bling_order_id)}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            ${blingLink(o.bling_order_id)}
+            <button onclick="event.stopPropagation();_toggleWbItems(${idx},this)" style="background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--t2)">▾ itens</button>
+          </div>
         </div>
-        <div id="wb-op-items-${idx}" style="font-size:11px;color:var(--t3);padding-left:2px">${nomeBanco}</div>
+        <div id="wb-op-items-${idx}" style="display:none;padding:8px 12px;background:var(--bg1);font-size:11px;color:var(--t3);border-top:1px solid var(--bdr)">⏳ carregando...</div>
       </div>`;
     }).join('');
-
-    // Tenta enriquecer com nomes reais do Bling (só se token disponível)
-    _wbClientOrders.forEach((o, idx) => _loadWbOrderItems(idx, o));
   } catch(e) {
     document.getElementById('wb-order-picker').innerHTML = `<div style="color:var(--danger);font-size:13px">Erro: ${e.message}</div>`;
+  }
+}
+
+async function _toggleWbItems(idx, btn) {
+  const el = document.getElementById(`wb-op-items-${idx}`);
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  btn.textContent  = open ? '▾ itens' : '▴ itens';
+  if (!open && !el.dataset.loaded) {
+    el.dataset.loaded = '1';
+    await _loadWbOrderItems(idx, _wbClientOrders[idx]);
   }
 }
 
 async function _loadWbOrderItems(idx, order) {
   const el = document.getElementById(`wb-op-items-${idx}`);
   if (!el) return;
+  const nomeBanco = (order.product_name && order.product_name !== 'Produto iSafe') ? order.product_name : null;
   if (!order.bling_order_id) {
-    el.textContent = order.product_name && order.product_name !== 'Produto iSafe' ? order.product_name : '—';
+    el.textContent = nomeBanco || '—';
     return;
   }
   try {
     const res   = await apiFetch(`/api/bling/raw-order/${order.bling_order_id}`);
     const raw   = await res.json();
     const itens = raw?.data?.itens || raw?.itens || [];
-    if (!itens.length) { el.textContent = order.product_name || '—'; return; }
-    // Guarda nome do primeiro item para uso na IA
+    if (!itens.length) { el.textContent = nomeBanco || '—'; return; }
     _wbClientOrders[idx]._firstItemName = itens[0].descricao || null;
     el.innerHTML = itens.map(item => {
       const qty = parseFloat(item.quantidade || 1);
-      return `<div>· ${qty > 1 ? qty + '× ' : ''}${escHtml(item.descricao||'—')}</div>`;
+      const val = parseFloat(item.valorUnidade || 0) * qty;
+      const fmtVal = val ? ' · ' + val.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0}) : '';
+      return `<div style="padding:2px 0">· ${qty > 1 ? qty + '× ' : ''}${escHtml(item.descricao||'—')}${fmtVal}</div>`;
     }).join('');
   } catch(e) {
-    if (el) el.textContent = order.product_name && order.product_name !== 'Produto iSafe' ? order.product_name : '—';
+    if (el) el.textContent = nomeBanco || '—';
   }
 }
 
