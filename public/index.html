@@ -1191,9 +1191,15 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
             <div><div style="font-size:12px;font-weight:500">Banco de dados</div><div style="font-size:11px;color:var(--t3)" id="db-status-text">Verificando...</div></div>
             <span id="db-status-badge" class="badge" style="background:rgba(34,197,94,.12);color:var(--success);border:1px solid rgba(34,197,94,.25)">● Online</span>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg3);border-radius:var(--r2)">
-            <div><div style="font-size:12px;font-weight:500">Scheduler de envios</div><div style="font-size:11px;color:var(--t3)">Todo dia às 9h</div></div>
-            <span class="badge" style="background:rgba(34,197,94,.12);color:var(--success);border:1px solid rgba(34,197,94,.25)">● Ativo</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;background:var(--bg3);border-radius:var(--r2)">
+            <div style="min-width:0">
+              <div style="font-size:12px;font-weight:500">Scheduler de envios</div>
+              <div style="font-size:11px;color:var(--t3)">Horário diário de disparo automático</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+              <input type="time" id="cfg-scheduler-time" class="cfg-inp" style="padding:4px 8px;font-size:12px;height:30px;width:96px">
+              <button class="btn btn-ghost btn-sm" onclick="saveSchedulerTime()">💾</button>
+            </div>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg3);border-radius:var(--r2)">
             <div><div style="font-size:12px;font-weight:500">Sincronizar Bling</div><div style="font-size:11px;color:var(--t3)">Pedidos + contatos dos últimos 90 dias</div></div>
@@ -4600,6 +4606,21 @@ async function loadSettings() {
     const tip = document.getElementById('bling-oauth-tip');
     if (tip) tip.style.display = (cfg.BLING_CLIENT_ID?.configured && !cfg.BLING_ACCESS_TOKEN?.configured) ? 'block' : 'none';
 
+    // Preenche horário do scheduler
+    const cronVal = cfg.SCHEDULER_CRON?.value;
+    if (cronVal && !String(cronVal).startsWith('••')) {
+      const parts = cronVal.trim().split(' ');
+      if (parts.length >= 2) {
+        const hh = String(parseInt(parts[1])).padStart(2,'0');
+        const mm = String(parseInt(parts[0])).padStart(2,'0');
+        const inp = document.getElementById('cfg-scheduler-time');
+        if (inp) inp.value = `${hh}:${mm}`;
+      }
+    } else {
+      const inp = document.getElementById('cfg-scheduler-time');
+      if (inp && !inp.value) inp.value = '09:00';
+    }
+
     _checkDbHealth();
   } catch(e) {
     console.error('Erro ao carregar configurações:', e.message);
@@ -4632,6 +4653,27 @@ async function _checkDbHealth() {
       if (text)  text.textContent = 'Banco de dados não disponível';
     }
   } catch {}
+}
+
+async function saveSchedulerTime() {
+  const inp = document.getElementById('cfg-scheduler-time');
+  if (!inp || !inp.value) return;
+  const [hour, minute] = inp.value.split(':').map(Number);
+  const btn = document.querySelector('button[onclick="saveSchedulerTime()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  try {
+    const res = await apiFetch('/api/scheduler/time', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hour, minute }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro');
+    if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.disabled = false; btn.textContent = '💾'; }, 2000); }
+  } catch (e) {
+    alert('Erro ao salvar horário: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = '💾'; }
+  }
 }
 
 async function saveCfgSection(category) {

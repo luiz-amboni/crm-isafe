@@ -12,21 +12,35 @@ const { query, transaction } = require('../db');
 const wa      = require('./whatsapp');
 const email   = require('./email');
 const logger  = require('./logger');
+const cfg     = require('./config');
 const { renderWhatsApp, renderEmailHTML, renderEmailSubject, buildContext } = require('../templates/messages');
 
 // ── INICIAR ───────────────────────────────────────────────────────────────
 
-function start() {
-  const cronExpr = process.env.SCHEDULER_CRON || '0 9 * * *';
-  logger.info(`Scheduler iniciado · Cron: "${cronExpr}"`);
+let _task = null;
 
-  cron.schedule(cronExpr, () => {
+async function start() {
+  const cronExpr = await cfg.get('SCHEDULER_CRON', '0 9 * * *');
+  _startCron(cronExpr);
+  return { runNow: runScheduler };
+}
+
+function _startCron(cronExpr) {
+  if (_task) { _task.stop(); _task = null; }
+  if (!cron.validate(cronExpr)) {
+    logger.error(`Cron inválido: "${cronExpr}" — mantendo padrão 0 9 * * *`);
+    cronExpr = '0 9 * * *';
+  }
+  logger.info(`Scheduler iniciado · Cron: "${cronExpr}"`);
+  _task = cron.schedule(cronExpr, () => {
     runScheduler().catch((err) => {
       logger.error(`Erro crítico no scheduler: ${err.message}\n${err.stack}`);
     });
   }, { timezone: 'America/Sao_Paulo' });
+}
 
-  return { runNow: runScheduler };
+function updateSchedule(cronExpr) {
+  _startCron(cronExpr);
 }
 
 // ── LÓGICA PRINCIPAL ──────────────────────────────────────────────────────
@@ -236,4 +250,4 @@ async function resendManual(pipelineId, dayOffset) {
   return sendStep({ pipeline, step, context });
 }
 
-module.exports = { start, runScheduler, resendManual };
+module.exports = { start, runScheduler, resendManual, updateSchedule };

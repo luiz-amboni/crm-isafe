@@ -6,13 +6,14 @@
  * GET  /api/bling/oauth/callback → recebe o código e troca pelo token
  */
 
-const router = require('express').Router();
-const axios  = require('axios');
-const dayjs  = require('dayjs');
-const auth   = require('../middleware/auth');
-const cfg    = require('../services/config');
+const router    = require('express').Router();
+const axios     = require('axios');
+const dayjs     = require('dayjs');
+const auth      = require('../middleware/auth');
+const cfg       = require('../services/config');
+const scheduler = require('../services/scheduler');
 const { query } = require('../db');
-const logger = require('../services/logger');
+const logger    = require('../services/logger');
 
 // ── LISTAR CONFIGURAÇÕES ───────────────────────────────────────────────────
 
@@ -176,6 +177,25 @@ router.post('/settings/sync/bagy', auth, async (req, res) => {
     const days = parseInt(req.body.days || '365');
     const result = await bagy.syncOrders(days);
     res.json({ ok: true, synced: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/scheduler/time — Atualiza horário do scheduler em tempo real
+router.post('/scheduler/time', auth, async (req, res) => {
+  try {
+    const { hour, minute } = req.body;
+    const h = parseInt(hour);
+    const m = parseInt(minute ?? 0);
+    if (isNaN(h) || h < 0 || h > 23 || isNaN(m) || m < 0 || m > 59) {
+      return res.status(400).json({ error: 'Horário inválido' });
+    }
+    const cronExpr = `${m} ${h} * * *`;
+    await cfg.set('SCHEDULER_CRON', cronExpr);
+    scheduler.updateSchedule(cronExpr);
+    logger.info(`Scheduler reagendado para ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} por ${req.user?.username}`);
+    res.json({ ok: true, cronExpr });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
