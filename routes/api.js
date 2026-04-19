@@ -932,13 +932,15 @@ router.get('/account/history', async (req, res) => {
         LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}
       `, dataParams),
       query(`SELECT COUNT(*) AS total FROM message_log ml ${whereClause}`, countParams),
-      query(`SELECT DISTINCT triggered_by FROM message_log WHERE triggered_by IS NOT NULL ORDER BY triggered_by`),
+      query(`SELECT username FROM users WHERE is_active = true ORDER BY username`),
     ]);
+
+    const senders = ['scheduler', ...usersRes.rows.map(r => r.username)];
 
     res.json({
       rows:     dataRes.rows,
       total:    parseInt(countRes.rows[0].total),
-      senders:  usersRes.rows.map(r => r.triggered_by),
+      senders,
       page,
       limit,
     });

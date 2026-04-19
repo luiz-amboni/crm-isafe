@@ -4812,10 +4812,10 @@ async function loadAccountHistory(page) {
     const data = await res.json();
     _histTotal = data.total;
 
-    // Populate sender dropdown only on first load (page 1, no sender filter active)
-    if (page === 1 && !sender && data.senders) {
+    // Populate sender dropdown (always refresh on page 1)
+    if (page === 1 && data.senders && data.senders.length) {
       const sel = document.getElementById('hist-filter-sender');
-      const cur = sel.value;
+      const cur = sender;
       sel.innerHTML = '<option value="">Todos os usuários</option>' +
         data.senders.map(s => `<option value="${s}"${s===cur?' selected':''}>${s === 'scheduler' ? '🤖 scheduler' : '👤 ' + s}</option>`).join('');
     }
