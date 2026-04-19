@@ -2427,11 +2427,12 @@ function _renderAspClients() {
   const tab = _aspActiveTab;
   const vf  = _aspVendedor;
   const fmt = v => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0});
+  // pending usa days_since (menor = mais recente); sent usa sent_at
   const ASP_SORT_FN = {
-    date_desc:   (a,b) => new Date(b.ordered_at||0) - new Date(a.ordered_at||0),
-    date_asc:    (a,b) => new Date(a.ordered_at||0) - new Date(b.ordered_at||0),
-    name_asc:    (a,b) => (a.client_name||'').localeCompare(b.client_name||''),
-    name_desc:   (a,b) => (b.client_name||'').localeCompare(a.client_name||''),
+    date_desc:   (a,b) => (a.days_since != null ? a.days_since - b.days_since : new Date(b.sent_at||0) - new Date(a.sent_at||0)),
+    date_asc:    (a,b) => (a.days_since != null ? b.days_since - a.days_since : new Date(a.sent_at||0) - new Date(b.sent_at||0)),
+    name_asc:    (a,b) => (a.name||'').localeCompare(b.name||''),
+    name_desc:   (a,b) => (b.name||'').localeCompare(a.name||''),
     amount_desc: (a,b) => parseFloat(b.amount||0) - parseFloat(a.amount||0),
     amount_asc:  (a,b) => parseFloat(a.amount||0) - parseFloat(b.amount||0),
   };
