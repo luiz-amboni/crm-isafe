@@ -47,17 +47,31 @@ app.use((req, _res, next) => {
 });
 
 // ── RATE LIMIT ─────────────────────────────────────────────────────────────
+// Limite geral alto — o CRM é de uso interno, poucos usuários simultâneos
+// Rate limit agressivo fica só no login para evitar brute force
 
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
-  max:      200,
-  message:  { error: 'Muitas requisições. Aguarde alguns minutos.' },
-  skip:     (req) => req.path === '/health',   // health check sem limite
+  max:      2000,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  skip: (req) => req.path === '/health',
 }));
+
+// Brute force protection no login
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max:      20,
+  message:  { error: 'Muitas tentativas de login. Aguarde 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
 
 const webhookLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max:      60,
+  max:      120,
+  standardHeaders: true,
+  legacyHeaders:   false,
 });
 
 // ── PARSERS ────────────────────────────────────────────────────────────────
@@ -81,6 +95,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── ROTAS ──────────────────────────────────────────────────────────────────
 
 app.use('/webhook', webhookLimiter, webhookRoutes);
+app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', authRoutes);   // login/verify — sem auth middleware
 app.use('/api', settingsRoutes);    // antes do apiRoutes: OAuth Bling não usa JWT
 app.use('/api', apiRoutes);
