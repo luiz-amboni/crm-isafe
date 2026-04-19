@@ -575,9 +575,10 @@ select.cfg-inp{font-family:inherit;cursor:pointer}
     <div class="nav-sec">Automação</div>
     <div class="nav-item" onclick="nav('automacoes',this)"><span class="nav-icon">⟳</span> Automações</div>
     <div class="nav-item" onclick="nav('mensagens',this)"><span class="nav-icon">◫</span> Biblioteca de Mensagens</div>
-    <div class="nav-sec">Configurações</div>
-    <div class="nav-item" onclick="nav('integracoes',this)"><span class="nav-icon">⇌</span> Integrações</div>
-    <div class="nav-item" onclick="nav('config',this)"><span class="nav-icon">⚙</span> Configurações</div>
+    <div class="nav-sec nav-admin-only">Configurações</div>
+    <div class="nav-item nav-admin-only" onclick="nav('integracoes',this)"><span class="nav-icon">⇌</span> Integrações</div>
+    <div class="nav-item nav-admin-only" onclick="nav('config',this)"><span class="nav-icon">⚙</span> Configurações</div>
+    <div class="nav-item nav-admin-only" id="nav-usuarios" onclick="nav('usuarios',this)"><span class="nav-icon">👥</span> Usuários</div>
     <div class="nav-item" onclick="nav('conta',this)"><span class="nav-icon">👤</span> Minha Conta</div>
   </div>
   <div class="sidebar-footer">
@@ -1483,7 +1484,7 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
 <!-- ══ MINHA CONTA ══ -->
 <div class="panel" id="panel-conta">
   <div class="sh">
-    <div><h2>Minha Conta</h2><p>Perfil do administrador, segurança e histórico de mensagens</p></div>
+    <div><h2>Minha Conta</h2><p>Perfil, segurança e histórico de mensagens</p></div>
   </div>
 
   <div class="cfg-grid" style="margin-bottom:16px">
@@ -1494,7 +1495,7 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
         <div class="ac-avatar" id="ac-avatar-big">IS</div>
         <div class="ac-info">
           <div class="ac-name" id="ac-username-display">admin</div>
-          <div class="ac-role">Administrador · Acesso total</div>
+          <div class="ac-role" id="ac-role-display">Administrador · Acesso total</div>
         </div>
       </div>
     </div>
@@ -1544,6 +1545,107 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
   </div>
 </div>
 
+<!-- ══ USUÁRIOS ══ -->
+<div class="panel" id="panel-usuarios">
+  <div class="sh">
+    <div><h2>Usuários</h2><p>Gerencie quem tem acesso ao CRM e veja o histórico de atividades</p></div>
+    <button class="btn btn-teal btn-sm" onclick="openUserModal()">+ Novo usuário</button>
+  </div>
+
+  <!-- Lista de usuários -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="ch">Usuários cadastrados</div>
+    <div id="users-list-body">
+      <div style="text-align:center;color:var(--t3);padding:30px;font-size:13px">Carregando...</div>
+    </div>
+  </div>
+
+  <!-- Log de atividades -->
+  <div class="card">
+    <div class="sh" style="padding:14px 16px 0">
+      <div><div class="ch" style="border:none;padding:0;margin:0">Log de Atividades</div></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="actlog-total" style="font-size:12px;color:var(--t3)"></span>
+        <button class="btn btn-ghost btn-sm" onclick="loadActivityLog(0)">⟳ Atualizar</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:var(--bg3)">
+            <th style="padding:8px 14px;text-align:left;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Usuário</th>
+            <th style="padding:8px 14px;text-align:left;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Ação</th>
+            <th style="padding:8px 14px;text-align:left;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Detalhes</th>
+            <th style="padding:8px 14px;text-align:right;color:var(--t3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.6px">Data/Hora</th>
+          </tr>
+        </thead>
+        <tbody id="actlog-body">
+          <tr><td colspan="4" style="text-align:center;color:var(--t3);padding:30px">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="actlog-pagination" style="display:flex;justify-content:center;gap:8px;padding:14px;flex-wrap:wrap"></div>
+  </div>
+</div>
+
+<!-- Modal criar/editar usuário -->
+<div id="user-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center" onclick="if(event.target===this)closeUserModal()">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:420px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h3 id="user-modal-title" style="font-size:16px;font-weight:700;color:var(--navy);margin:0">Novo usuário</h3>
+      <button onclick="closeUserModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--t3);line-height:1">&times;</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <div class="cfg-label">Nome completo</div>
+        <input id="um-fullname" type="text" class="cfg-inp" style="width:100%" placeholder="Ex: João Silva">
+      </div>
+      <div>
+        <div class="cfg-label">Nome de usuário (login)</div>
+        <input id="um-username" type="text" class="cfg-inp" style="width:100%" placeholder="Ex: joao.silva" autocomplete="off">
+      </div>
+      <div id="um-pass-wrap">
+        <div class="cfg-label">Senha</div>
+        <input id="um-password" type="password" class="cfg-inp" style="width:100%" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+      </div>
+      <div>
+        <div class="cfg-label">Perfil</div>
+        <select id="um-role" class="cfg-inp" style="width:100%">
+          <option value="user">Usuário (sem acesso a Configurações)</option>
+          <option value="admin">Administrador (acesso total)</option>
+        </select>
+      </div>
+      <div id="um-active-wrap" style="display:none">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--t1)">
+          <input id="um-active" type="checkbox" checked style="width:16px;height:16px">
+          Usuário ativo
+        </label>
+      </div>
+      <div id="um-error" style="display:none;color:var(--danger);font-size:12px;padding:6px 10px;background:rgba(239,68,68,.08);border-radius:7px"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+      <button onclick="closeUserModal()" class="btn btn-ghost btn-sm">Cancelar</button>
+      <button id="um-save-btn" onclick="saveUser()" class="btn btn-teal btn-sm">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal resetar senha -->
+<div id="reset-pass-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center" onclick="if(event.target===this)closeResetPassModal()">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:380px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h3 style="font-size:16px;font-weight:700;color:var(--navy);margin:0">Redefinir senha</h3>
+      <button onclick="closeResetPassModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--t3);line-height:1">&times;</button>
+    </div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:14px">Definir nova senha para <strong id="rp-username"></strong></div>
+    <input id="rp-password" type="password" class="cfg-inp" style="width:100%;margin-bottom:12px" placeholder="Nova senha (mín. 6 caracteres)" autocomplete="new-password">
+    <div id="rp-error" style="display:none;color:var(--danger);font-size:12px;padding:6px 10px;background:rgba(239,68,68,.08);border-radius:7px;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeResetPassModal()" class="btn btn-ghost btn-sm">Cancelar</button>
+      <button id="rp-save-btn" onclick="doResetPassword()" class="btn btn-teal btn-sm">Salvar</button>
+    </div>
+  </div>
+</div>
 
 <div id="bulk-dispatch-modal" onclick="if(event.target===this)closeBulkDispatch()">
   <div class="bdm-box">
@@ -1642,10 +1744,10 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
 <script>
 // ── AUTENTICAÇÃO ──────────────────────────────────────────────
 
-let _authToken = localStorage.getItem('isafe_token') || null;
+let _authToken  = localStorage.getItem('isafe_token')  || null;
+let _authRole   = localStorage.getItem('isafe_role')   || 'admin';
+let _authUser   = localStorage.getItem('isafe_user')   || 'admin';
 
-// Verifica token ao carregar a página
-// Verifica token ao abrir a página (usa fetch puro — não é chamada protegida)
 async function checkAuth() {
   if (!_authToken) { _showLogin(); return; }
   try {
@@ -1654,8 +1756,12 @@ async function checkAuth() {
     });
     if (res.ok) {
       const data = await res.json();
-      _setAvatar(data.user || 'admin');
-      // Tela de login já começa oculta (display:none no CSS) — não precisa esconder
+      _authRole = data.role || 'admin';
+      _authUser = data.username || 'admin';
+      localStorage.setItem('isafe_role', _authRole);
+      localStorage.setItem('isafe_user', _authUser);
+      _setAvatar(_authUser);
+      _applyRoleUI();
     } else {
       _authToken = null;
       localStorage.removeItem('isafe_token');
@@ -1681,6 +1787,22 @@ function _setAvatar(user) {
   if (name) name.textContent = user || 'admin';
 }
 
+function _applyRoleUI() {
+  const isAdmin = _authRole === 'admin';
+  // Seção "Configurações" na sidebar (Integrações + Configurações)
+  document.querySelectorAll('.nav-admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+  // Seção "Usuários" só para admin
+  const usersItem = document.getElementById('nav-usuarios');
+  if (usersItem) usersItem.style.display = isAdmin ? '' : 'none';
+  // Atualiza perfil na página Minha Conta
+  const roleEl = document.getElementById('ac-role-display');
+  if (roleEl) roleEl.textContent = isAdmin ? 'Administrador · Acesso total' : 'Usuário';
+  const nameEl = document.getElementById('ac-username-display');
+  if (nameEl) nameEl.textContent = _authUser;
+}
+
 // Login — usa fetch puro (rota pública, não precisa de token)
 async function doLogin() {
   const user  = document.getElementById('login-user').value.trim();
@@ -1698,9 +1820,14 @@ async function doLogin() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Credenciais inválidas');
     _authToken = data.token;
+    _authRole  = data.role || 'admin';
+    _authUser  = data.username || user || 'admin';
     localStorage.setItem('isafe_token', _authToken);
+    localStorage.setItem('isafe_role',  _authRole);
+    localStorage.setItem('isafe_user',  _authUser);
     _hideLogin();
-    _setAvatar(data.user || user || 'admin');
+    _setAvatar(_authUser);
+    _applyRoleUI();
     initApp();
     document.getElementById('login-pass').value = '';
   } catch(e) {
@@ -1713,7 +1840,12 @@ async function doLogin() {
 
 function logout() {
   _authToken = null;
+  _authRole  = 'admin';
+  _authUser  = 'admin';
   localStorage.removeItem('isafe_token');
+  localStorage.removeItem('isafe_role');
+  localStorage.removeItem('isafe_user');
+  apiFetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
   closeAvatarMenu();
   document.getElementById('login-pass').value = '';
   _showLogin();
@@ -1876,7 +2008,8 @@ function nav(id, el) {
     dashboard:'Dashboard', automacoes:'Automações', clientes:'Clientes',
     mensagens:'Biblioteca de Mensagens', 'whatsapp-mkt':'WhatsApp Marketing',
     'email-mkt':'Email Marketing', winback:'Reativar Clientes',
-    integracoes:'Integrações', config:'Configurações', conta:'Minha Conta'
+    integracoes:'Integrações', config:'Configurações', conta:'Minha Conta',
+    usuarios:'Usuários'
   };
   document.getElementById('page-title').textContent = titles[id] || id;
   if (id === 'dashboard')    loadDashboard();
@@ -1887,6 +2020,7 @@ function nav(id, el) {
   if (id === 'mensagens')    loadTmplLib();
   if (id === 'config')       loadSettings();
   if (id === 'conta')        loadAccount();
+  if (id === 'usuarios')     { loadUsers(); loadActivityLog(0); }
   // Fecha sidebar no mobile
   document.getElementById('sidebar-overlay')?.classList.remove('open');
   document.querySelector('.sidebar')?.classList.remove('open');
@@ -4731,6 +4865,254 @@ async function changePassword() {
     errEl.textContent = 'Erro de conexão: ' + e.message; errEl.style.display = 'block';
   } finally {
     btn.disabled = false; btn.textContent = 'Salvar nova senha';
+  }
+}
+
+// ── GESTÃO DE USUÁRIOS ────────────────────────────────────────
+
+let _editingUserId = null;
+let _resetPassUserId = null;
+
+async function loadUsers() {
+  const body = document.getElementById('users-list-body');
+  body.innerHTML = '<div style="text-align:center;color:var(--t3);padding:20px">Carregando...</div>';
+  try {
+    const res  = await apiFetch('/api/users');
+    const list = await res.json();
+    if (!res.ok) { body.innerHTML = `<div style="padding:20px;color:var(--danger)">${list.error||'Erro'}</div>`; return; }
+    if (!list.length) { body.innerHTML = '<div style="text-align:center;color:var(--t3);padding:20px;font-size:13px">Nenhum usuário cadastrado ainda.</div>'; return; }
+
+    body.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:var(--bg3)">
+        <th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">Usuário</th>
+        <th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">Perfil</th>
+        <th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">Status</th>
+        <th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">Último login</th>
+        <th style="padding:8px 14px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3)">Ações</th>
+      </tr></thead>
+      <tbody>
+      ${list.map(u => {
+        const lastLogin = u.last_login ? new Date(u.last_login).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+        const roleLabel = u.role === 'admin' ? '<span style="color:var(--teal);font-weight:600">Admin</span>' : 'Usuário';
+        const statusBadge = u.is_active
+          ? '<span style="color:var(--success);font-weight:600">Ativo</span>'
+          : '<span style="color:var(--danger);font-weight:600">Inativo</span>';
+        return `<tr style="border-bottom:1px solid var(--bdr)">
+          <td style="padding:10px 14px">
+            <div style="font-weight:600;color:var(--navy)">${escHtml(u.full_name||u.username)}</div>
+            <div style="font-size:11px;color:var(--t3)">@${escHtml(u.username)}</div>
+          </td>
+          <td style="padding:10px 14px">${roleLabel}</td>
+          <td style="padding:10px 14px">${statusBadge}</td>
+          <td style="padding:10px 14px;font-size:12px;color:var(--t3)">${lastLogin}</td>
+          <td style="padding:10px 14px;text-align:right">
+            <button class="btn btn-ghost btn-sm" onclick="openUserModal(${u.id})" style="margin-right:4px">Editar</button>
+            <button class="btn btn-ghost btn-sm" onclick="openResetPassModal(${u.id},'${escHtml(u.username)}')" style="margin-right:4px">Senha</button>
+            ${u.is_active
+              ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="toggleUserActive(${u.id},false)">Desativar</button>`
+              : `<button class="btn btn-ghost btn-sm" style="color:var(--success)" onclick="toggleUserActive(${u.id},true)">Ativar</button>`}
+          </td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>`;
+  } catch(e) {
+    body.innerHTML = `<div style="padding:20px;color:var(--danger)">Erro: ${e.message}</div>`;
+  }
+}
+
+function openUserModal(userId) {
+  _editingUserId = userId || null;
+  const title = document.getElementById('user-modal-title');
+  title.textContent = userId ? 'Editar usuário' : 'Novo usuário';
+  document.getElementById('um-fullname').value = '';
+  document.getElementById('um-username').value = '';
+  document.getElementById('um-password').value = '';
+  document.getElementById('um-role').value = 'user';
+  document.getElementById('um-error').style.display = 'none';
+  document.getElementById('um-pass-wrap').style.display = userId ? 'none' : '';
+  document.getElementById('um-active-wrap').style.display = userId ? '' : 'none';
+  document.getElementById('um-active').checked = true;
+
+  if (userId) {
+    apiFetch('/api/users').then(r => r.json()).then(list => {
+      const u = list.find(x => x.id === userId);
+      if (!u) return;
+      document.getElementById('um-fullname').value = u.full_name || '';
+      document.getElementById('um-username').value = u.username;
+      document.getElementById('um-role').value = u.role;
+      document.getElementById('um-active').checked = u.is_active;
+    });
+  }
+
+  const modal = document.getElementById('user-modal');
+  modal.style.display = 'flex';
+}
+
+function closeUserModal() {
+  document.getElementById('user-modal').style.display = 'none';
+  _editingUserId = null;
+}
+
+async function saveUser() {
+  const fullName = document.getElementById('um-fullname').value.trim();
+  const username = document.getElementById('um-username').value.trim();
+  const password = document.getElementById('um-password').value;
+  const role     = document.getElementById('um-role').value;
+  const isActive = document.getElementById('um-active').checked;
+  const errEl    = document.getElementById('um-error');
+  const btn      = document.getElementById('um-save-btn');
+  errEl.style.display = 'none';
+
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    let res, data;
+    if (_editingUserId) {
+      res  = await apiFetch(`/api/users/${_editingUserId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName, role, is_active: isActive }),
+      });
+    } else {
+      if (!username || !password) { errEl.textContent = 'Preencha usuário e senha.'; errEl.style.display = 'block'; return; }
+      res = await apiFetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, full_name: fullName, role }),
+      });
+    }
+    data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Erro ao salvar.'; errEl.style.display = 'block'; return; }
+    closeUserModal();
+    loadUsers();
+  } catch(e) {
+    errEl.textContent = 'Erro: ' + e.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar';
+  }
+}
+
+async function toggleUserActive(userId, active) {
+  if (!confirm(active ? 'Ativar este usuário?' : 'Desativar este usuário?')) return;
+  await apiFetch(`/api/users/${userId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ is_active: active }),
+  });
+  loadUsers();
+}
+
+function openResetPassModal(userId, username) {
+  _resetPassUserId = userId;
+  document.getElementById('rp-username').textContent = username;
+  document.getElementById('rp-password').value = '';
+  document.getElementById('rp-error').style.display = 'none';
+  document.getElementById('reset-pass-modal').style.display = 'flex';
+}
+
+function closeResetPassModal() {
+  document.getElementById('reset-pass-modal').style.display = 'none';
+  _resetPassUserId = null;
+}
+
+async function doResetPassword() {
+  const pass  = document.getElementById('rp-password').value;
+  const errEl = document.getElementById('rp-error');
+  const btn   = document.getElementById('rp-save-btn');
+  errEl.style.display = 'none';
+  if (!pass || pass.length < 6) { errEl.textContent = 'Senha deve ter mínimo 6 caracteres.'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    const res  = await apiFetch(`/api/users/${_resetPassUserId}/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_password: pass }),
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Erro.'; errEl.style.display = 'block'; return; }
+    closeResetPassModal();
+    alert('Senha redefinida com sucesso!');
+  } catch(e) {
+    errEl.textContent = 'Erro: ' + e.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar';
+  }
+}
+
+// ── LOG DE ATIVIDADES ─────────────────────────────────────────
+
+let _actlogOffset = 0;
+const _actlogLimit = 50;
+
+const _actlogLabels = {
+  login: '🔐 Login',
+  logout: '🚪 Logout',
+  change_password: '🔑 Alterou senha',
+  create_user: '👤 Criou usuário',
+  update_user: '✏️ Editou usuário',
+  reset_password: '🔄 Resetou senha',
+  winback_contacted: '📱 Reativação enviada',
+  bling_sync: '🔄 Sync Bling',
+  campaign_dispatch: '📣 Disparou campanha',
+  cleanup_logs: '🧹 Limpou logs',
+};
+
+async function loadActivityLog(offset) {
+  _actlogOffset = offset || 0;
+  const tbody  = document.getElementById('actlog-body');
+  const totEl  = document.getElementById('actlog-total');
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--t3);padding:20px">Carregando...</td></tr>';
+
+  try {
+    const res  = await apiFetch(`/api/activity-log?limit=${_actlogLimit}&offset=${_actlogOffset}`);
+    const data = await res.json();
+    if (!res.ok) { tbody.innerHTML = `<tr><td colspan="4" style="color:var(--danger);padding:14px">${data.error||'Erro'}</td></tr>`; return; }
+
+    totEl.textContent = `${data.total} registros`;
+
+    if (!data.rows.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--t3);padding:24px">Nenhuma atividade registrada ainda.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.rows.map(r => {
+      const dt = new Date(r.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const label = _actlogLabels[r.action] || r.action;
+      let details = '';
+      if (r.details) {
+        try {
+          const d = typeof r.details === 'string' ? JSON.parse(r.details) : r.details;
+          details = Object.entries(d).map(([k,v]) => `${k}: ${JSON.stringify(v)}`).join(', ');
+        } catch { details = String(r.details); }
+      }
+      return `<tr style="border-bottom:1px solid var(--bdr)">
+        <td style="padding:8px 14px">
+          <div style="font-weight:600;font-size:12px;color:var(--navy)">${escHtml(r.full_name||r.username||'—')}</div>
+          <div style="font-size:11px;color:var(--t3)">@${escHtml(r.username||'—')}</div>
+        </td>
+        <td style="padding:8px 14px;font-size:12px">${label}</td>
+        <td style="padding:8px 14px;font-size:11px;color:var(--t3);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(details)}</td>
+        <td style="padding:8px 14px;font-size:11px;color:var(--t3);text-align:right;white-space:nowrap">${dt}</td>
+      </tr>`;
+    }).join('');
+
+    // Paginação simples
+    const pages = Math.ceil(data.total / _actlogLimit);
+    const curPage = Math.floor(_actlogOffset / _actlogLimit) + 1;
+    const pagDiv = document.getElementById('actlog-pagination');
+    pagDiv.innerHTML = '';
+    if (pages > 1) {
+      for (let i = 1; i <= Math.min(pages, 10); i++) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-ghost btn-sm';
+        btn.textContent = i;
+        if (i === curPage) btn.style.background = 'var(--teal)'; btn.style.color = i === curPage ? '#fff' : '';
+        btn.onclick = () => loadActivityLog((i-1) * _actlogLimit);
+        pagDiv.appendChild(btn);
+      }
+    }
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--danger);padding:14px">Erro: ${e.message}</td></tr>`;
   }
 }
 

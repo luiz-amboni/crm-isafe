@@ -15,6 +15,7 @@ const wa        = require('../services/whatsapp');
 const logger    = require('../services/logger');
 const auth      = require('../middleware/auth');
 const ai        = require('../services/ai');
+const activityLog = require('../services/activityLog');
 const { buildContext, renderWhatsApp } = require('../templates/messages');
 
 router.use(auth);
@@ -467,6 +468,7 @@ router.post('/winback/mark-contacted', async (req, res) => {
       VALUES ($1, $2, NULL, NULL, -1, $3, 'sent', NOW(), $4)
     `, [clientId, orderId, channel || 'winback', message || null]);
 
+    await activityLog.log(req.user?.id, req.user?.username, 'winback_contacted', { clientId, channel }, req.ip);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -972,6 +974,7 @@ router.post('/bling/sync', async (req, res) => {
     const contacts = await bling.syncContacts();
     await new Promise(r => setTimeout(r, 2000));
     const orders   = await bling.syncOrders(days);
+    await activityLog.log(req.user?.id, req.user?.username, 'bling_sync', { days, contacts, orders }, req.ip);
     res.json({ success: true, contacts, orders });
   } catch (err) {
     res.status(500).json({ error: err.message });

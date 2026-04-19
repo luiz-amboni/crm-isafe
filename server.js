@@ -11,6 +11,7 @@ const rateLimit   = require('express-rate-limit');
 const path        = require('path');
 const fs          = require('fs');
 const { pool }    = require('./db');
+const { runMigrations } = require('./db/runMigrations');
 const logger      = require('./services/logger');
 const scheduler   = require('./services/scheduler');
 const bling       = require('./services/bling');
@@ -21,6 +22,7 @@ const messageRoutes  = require('./routes/messages');
 const webhookRoutes  = require('./routes/webhook');
 const settingsRoutes = require('./routes/settings');
 const authRoutes     = require('./routes/auth');
+const usersRoutes    = require('./routes/users');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -84,6 +86,7 @@ app.use('/api', apiRoutes);
 app.use('/api', extraRoutes);
 app.use('/api', campaignRoutes);
 app.use('/api', messageRoutes);
+app.use('/api', usersRoutes);
 
 // Descadastro de email — rota direta para links nos e-mails
 app.get('/email/unsubscribe', (req, res) => {
@@ -151,6 +154,9 @@ async function start() {
     logger.error('Verifique DATABASE_URL no arquivo .env');
     process.exit(1);
   }
+
+  await runMigrations();
+  await authRoutes.seedAdmin();
 
   app.listen(PORT, () => {
     logger.info(`iSafe CRM rodando na porta ${PORT} · ${process.env.NODE_ENV || 'development'}`);

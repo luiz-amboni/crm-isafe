@@ -11,6 +11,7 @@ const wa        = require('../services/whatsapp');
 const email     = require('../services/email');
 const logger    = require('../services/logger');
 const auth      = require('../middleware/auth');
+const activityLog = require('../services/activityLog');
 
 router.use(auth);
 
@@ -210,6 +211,7 @@ router.post('/campaigns/:id/dispatch', async (req, res) => {
       WHERE cc.campaign_id = $1 AND cc.status = 'pending'
     `, [camp.id]);
 
+    await activityLog.log(req.user?.id, req.user?.username, 'campaign_dispatch', { campaign_id: camp.id, name: camp.name, queued: pending.length }, req.ip);
     res.json({ ok: true, queued: pending.length, message: `Disparo iniciado para ${pending.length} clientes` });
 
     // Dispara em background
