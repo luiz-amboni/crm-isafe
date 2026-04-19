@@ -737,7 +737,17 @@ select.cfg-inp{font-family:inherit;cursor:pointer}
       <div class="asp-tab active" id="asp-tab-pending" onclick="showAspTab('pending',this)">⏳ Aguardando <span id="asp-badge-pending" style="color:var(--warn);font-weight:700"></span></div>
       <div class="asp-tab" id="asp-tab-sent" onclick="showAspTab('sent',this)">✅ Já enviados <span id="asp-badge-sent" style="color:var(--success);font-weight:700"></span></div>
     </div>
-    <div id="asp-vendor-filter" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <div id="asp-vendor-filter" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;flex:1;min-width:0"></div>
+      <select id="asp-sort-sel" class="cfg-inp" style="padding:4px 8px;font-size:12px;height:30px;flex-shrink:0" onchange="_aspSort=this.value;_renderAspClients()">
+        <option value="date_desc">📅 Mais recente</option>
+        <option value="date_asc">📅 Mais antigo</option>
+        <option value="name_asc">🔤 Nome A→Z</option>
+        <option value="name_desc">🔤 Nome Z→A</option>
+        <option value="amount_desc">💰 Maior valor</option>
+        <option value="amount_asc">💰 Menor valor</option>
+      </select>
+    </div>
     <div id="asp-bulk-bar" class="bulk-bar" style="display:none">
       <span class="bulk-bar-info" id="asp-bulk-info"></span>
       <button class="bulk-btn" onclick="_aspSelectAll()">Selecionar todos</button>
@@ -2302,6 +2312,7 @@ let _aspPending     = [];
 let _aspSent        = [];
 let _aspActiveTab   = 'pending';
 let _aspVendedor    = 'all';
+let _aspSort        = 'date_desc';
 let _aspActiveClient= null;
 
 async function openAutoStep(stepId) {
@@ -2416,10 +2427,20 @@ function _renderAspClients() {
   const tab = _aspActiveTab;
   const vf  = _aspVendedor;
   const fmt = v => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0});
+  const ASP_SORT_FN = {
+    date_desc:   (a,b) => new Date(b.ordered_at||0) - new Date(a.ordered_at||0),
+    date_asc:    (a,b) => new Date(a.ordered_at||0) - new Date(b.ordered_at||0),
+    name_asc:    (a,b) => (a.client_name||'').localeCompare(b.client_name||''),
+    name_desc:   (a,b) => (b.client_name||'').localeCompare(a.client_name||''),
+    amount_desc: (a,b) => parseFloat(b.amount||0) - parseFloat(a.amount||0),
+    amount_asc:  (a,b) => parseFloat(a.amount||0) - parseFloat(b.amount||0),
+  };
+  const sortFn = ASP_SORT_FN[_aspSort] || ASP_SORT_FN.date_desc;
 
   if (tab === 'pending') {
-    let data = _aspPending;
+    let data = [..._aspPending];
     if (vf !== 'all') data = data.filter(c => c.vendedor === vf);
+    data.sort(sortFn);
     if (!data.length) {
       el.innerHTML = '<div style="text-align:center;color:var(--t3);padding:40px;font-size:13px">🎉 Nenhum cliente aguardando nesta janela.</div>';
       _updateAspBulkBar(); return;
@@ -2445,8 +2466,9 @@ function _renderAspClients() {
       </div>`;
     }).join('');
   } else {
-    let data = _aspSent;
+    let data = [..._aspSent];
     if (vf !== 'all') data = data.filter(c => c.vendedor === vf);
+    data.sort(sortFn);
     if (!data.length) {
       el.innerHTML = '<div style="text-align:center;color:var(--t3);padding:40px;font-size:13px">Nenhuma mensagem enviada ainda.</div>';
       _updateAspBulkBar(); return;
