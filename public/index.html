@@ -1487,23 +1487,25 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
     <div><h2>Minha Conta</h2><p>Perfil, segurança e histórico de mensagens</p></div>
   </div>
 
-  <div class="cfg-grid" style="margin-bottom:16px">
+  <!-- Card de perfil + senha lado a lado em tela grande, empilhados em mobile -->
+  <div class="cfg-grid" style="margin-bottom:20px">
+
     <!-- Perfil -->
-    <div class="card">
+    <div class="card" style="overflow:hidden">
       <div class="ch">Perfil</div>
-      <div class="cb" style="display:flex;align-items:center;gap:16px;padding:16px">
-        <div class="ac-avatar" id="ac-avatar-big">IS</div>
-        <div class="ac-info">
-          <div class="ac-name" id="ac-username-display">admin</div>
-          <div class="ac-role" id="ac-role-display">Administrador · Acesso total</div>
+      <div style="padding:20px;display:flex;align-items:center;gap:18px">
+        <div class="ac-avatar" id="ac-avatar-big" style="width:64px;height:64px;font-size:22px;border-radius:14px;flex-shrink:0">IS</div>
+        <div>
+          <div id="ac-username-display" style="font-size:17px;font-weight:700;color:var(--navy);line-height:1.2">admin</div>
+          <div id="ac-role-display" style="font-size:12px;color:var(--t3);margin-top:4px">Administrador · Acesso total</div>
         </div>
       </div>
     </div>
 
     <!-- Troca de senha -->
-    <div class="card">
+    <div class="card" style="overflow:hidden">
       <div class="ch">Alterar Senha</div>
-      <div class="cb" style="display:flex;flex-direction:column;gap:10px">
+      <div style="padding:18px;display:flex;flex-direction:column;gap:12px">
         <div>
           <div class="cfg-label">Senha atual</div>
           <input id="pw-current" type="password" class="cfg-inp" style="width:100%" placeholder="••••••••" autocomplete="current-password">
@@ -1518,18 +1520,34 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
         </div>
         <div id="pw-error" style="display:none;color:var(--danger);font-size:12px;padding:6px 10px;background:rgba(239,68,68,.08);border-radius:7px"></div>
         <div id="pw-ok" style="display:none;color:var(--success);font-size:12px;padding:6px 10px;background:rgba(34,197,94,.08);border-radius:7px">✅ Senha alterada com sucesso!</div>
-        <button class="btn btn-teal btn-sm" id="pw-save-btn" onclick="changePassword()">Salvar nova senha</button>
+        <button class="btn btn-teal btn-sm" id="pw-save-btn" onclick="changePassword()" style="align-self:flex-start">Salvar nova senha</button>
       </div>
     </div>
+
   </div>
 
   <!-- Histórico de mensagens -->
   <div class="card">
-    <div class="sh" style="padding:14px 16px 0">
-      <div><div class="ch" style="border:none;padding:0;margin:0">Histórico de Mensagens Enviadas</div></div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span id="hist-total" style="font-size:12px;color:var(--t3)"></span>
-        <button class="btn btn-ghost btn-sm" onclick="loadAccountHistory(1)">⟳ Atualizar</button>
+    <div style="padding:14px 16px 12px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">Histórico de Mensagens</div>
+        <div id="hist-total" style="font-size:11px;color:var(--t3);margin-top:2px"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="hist-filter-status" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:32px" onchange="loadAccountHistory(1)">
+          <option value="">Todos os status</option>
+          <option value="sent">✅ Enviado</option>
+          <option value="failed">❌ Falhou</option>
+          <option value="skipped">⚪ Pulado</option>
+        </select>
+        <select id="hist-filter-channel" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:32px" onchange="loadAccountHistory(1)">
+          <option value="">Todos os canais</option>
+          <option value="whatsapp">💬 WhatsApp</option>
+          <option value="email">📧 Email</option>
+          <option value="both">Ambos</option>
+          <option value="winback">↩ Reativação</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadAccountHistory(1)">⟳</button>
       </div>
     </div>
     <!-- Cabeçalho da tabela -->
@@ -4776,15 +4794,22 @@ function loadAccount() {
 async function loadAccountHistory(page) {
   _histPage = page || 1;
   const limit = 50;
+  const status  = document.getElementById('hist-filter-status')?.value  || '';
+  const channel = document.getElementById('hist-filter-channel')?.value || '';
+  const params  = new URLSearchParams({ page: _histPage, limit });
+  if (status)  params.set('status',  status);
+  if (channel) params.set('channel', channel);
+
   document.getElementById('hist-body').innerHTML =
     '<div style="text-align:center;color:var(--t3);padding:24px;font-size:12px">Carregando...</div>';
   try {
-    const res  = await apiFetch(`/api/account/history?page=${_histPage}&limit=${limit}`);
+    const res  = await apiFetch(`/api/account/history?${params}`);
     if (!res.ok) throw new Error('Erro ao carregar histórico');
     const data = await res.json();
     _histTotal = data.total;
+    const filterSuffix = (status || channel) ? ' (filtrado)' : '';
     document.getElementById('hist-total').textContent =
-      `${_histTotal.toLocaleString('pt-BR')} mensagens no total`;
+      `${_histTotal.toLocaleString('pt-BR')} registros${filterSuffix}`;
 
     const fmt = v => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0});
     const stColors = { sent:'var(--success)', failed:'var(--danger)', skipped:'var(--t3)', pending:'var(--warn)' };

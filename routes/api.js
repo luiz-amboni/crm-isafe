@@ -899,9 +899,20 @@ router.get('/steps/:id/detail', async (req, res) => {
 // GET /api/account/history — Histórico completo de mensagens enviadas
 router.get('/account/history', async (req, res) => {
   try {
-    const page  = Math.max(1, parseInt(req.query.page  || '1'));
-    const limit = Math.min(100, parseInt(req.query.limit || '50'));
-    const offset = (page - 1) * limit;
+    const page    = Math.max(1, parseInt(req.query.page  || '1'));
+    const limit   = Math.min(100, parseInt(req.query.limit || '50'));
+    const offset  = (page - 1) * limit;
+    const status  = req.query.status  || null;
+    const channel = req.query.channel || null;
+
+    const where = [];
+    const params = [];
+    if (status)  { params.push(status);  where.push(`ml.status = $${params.length}`); }
+    if (channel) { params.push(channel); where.push(`ml.channel = $${params.length}`); }
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const dataParams  = [...params, limit, offset];
+    const countParams = [...params];
 
     const [dataRes, countRes] = await Promise.all([
       query(`
@@ -914,10 +925,11 @@ router.get('/account/history', async (req, res) => {
         LEFT JOIN clients c ON c.id = ml.client_id
         LEFT JOIN orders o  ON o.id  = ml.order_id
         LEFT JOIN automation_steps s ON s.id = ml.step_id
+        ${whereClause}
         ORDER BY ml.created_at DESC
-        LIMIT $1 OFFSET $2
-      `, [limit, offset]),
-      query(`SELECT COUNT(*) AS total FROM message_log`),
+        LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}
+      `, dataParams),
+      query(`SELECT COUNT(*) AS total FROM message_log ml ${whereClause}`, countParams),
     ]);
 
     res.json({
