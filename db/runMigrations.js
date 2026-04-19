@@ -23,6 +23,13 @@ const MIGRATIONS = [
     `,
   },
   {
+    name: '003_message_log_triggered_by',
+    sql: `
+      ALTER TABLE message_log ADD COLUMN IF NOT EXISTS triggered_by VARCHAR(50);
+      COMMENT ON COLUMN message_log.triggered_by IS 'scheduler = automático, ou username de quem disparou manualmente';
+    `,
+  },
+  {
     name: '002_activity_log',
     sql: `
       CREATE TABLE IF NOT EXISTS activity_log (

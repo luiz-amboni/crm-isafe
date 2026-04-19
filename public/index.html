@@ -1289,6 +1289,9 @@ Posso te mostrar o que chegou de novo? 🎯</textarea>
           <option value="both">Ambos</option>
           <option value="winback">↩ Reativação</option>
         </select>
+        <select id="hist-filter-sender" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:32px" onchange="loadAccountHistory(1)">
+          <option value="">Todos os usuários</option>
+        </select>
         <button class="btn btn-ghost btn-sm" onclick="loadAccountHistory(1)">⟳</button>
       </div>
     </div>
@@ -4795,9 +4798,11 @@ async function loadAccountHistory(page) {
   const limit = 50;
   const status  = document.getElementById('hist-filter-status')?.value  || '';
   const channel = document.getElementById('hist-filter-channel')?.value || '';
+  const sender  = document.getElementById('hist-filter-sender')?.value  || '';
   const params  = new URLSearchParams({ page: _histPage, limit });
   if (status)  params.set('status',  status);
   if (channel) params.set('channel', channel);
+  if (sender)  params.set('triggered_by', sender);
 
   document.getElementById('hist-body').innerHTML =
     '<div style="text-align:center;color:var(--t3);padding:24px;font-size:12px">Carregando...</div>';
@@ -4806,7 +4811,16 @@ async function loadAccountHistory(page) {
     if (!res.ok) throw new Error('Erro ao carregar histórico');
     const data = await res.json();
     _histTotal = data.total;
-    const filterSuffix = (status || channel) ? ' (filtrado)' : '';
+
+    // Populate sender dropdown only on first load (page 1, no sender filter active)
+    if (page === 1 && !sender && data.senders) {
+      const sel = document.getElementById('hist-filter-sender');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">Todos os usuários</option>' +
+        data.senders.map(s => `<option value="${s}"${s===cur?' selected':''}>${s === 'scheduler' ? '🤖 scheduler' : '👤 ' + s}</option>`).join('');
+    }
+
+    const filterSuffix = (status || channel || sender) ? ' (filtrado)' : '';
     document.getElementById('hist-total').textContent =
       `${_histTotal.toLocaleString('pt-BR')} registros${filterSuffix}`;
 

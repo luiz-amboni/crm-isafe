@@ -464,9 +464,9 @@ router.post('/winback/mark-contacted', async (req, res) => {
 
     await query(`
       INSERT INTO message_log
-        (client_id, order_id, step_id, pipeline_id, day_offset, channel, status, sent_at, wa_message)
-      VALUES ($1, $2, NULL, NULL, -1, $3, 'sent', NOW(), $4)
-    `, [clientId, orderId, channel || 'winback', message || null]);
+        (client_id, order_id, step_id, pipeline_id, day_offset, channel, status, sent_at, wa_message, triggered_by)
+      VALUES ($1, $2, NULL, NULL, -1, $3, 'sent', NOW(), $4, $5)
+    `, [clientId, orderId, channel || 'winback', message || null, req.user?.username || 'manual']);
 
     await activityLog.log(req.user?.id, req.user?.username, 'winback_contacted', { clientId, channel }, req.ip);
     res.json({ success: true });
@@ -899,25 +899,27 @@ router.get('/steps/:id/detail', async (req, res) => {
 // GET /api/account/history — Histórico completo de mensagens enviadas
 router.get('/account/history', async (req, res) => {
   try {
-    const page    = Math.max(1, parseInt(req.query.page  || '1'));
-    const limit   = Math.min(100, parseInt(req.query.limit || '50'));
-    const offset  = (page - 1) * limit;
-    const status  = req.query.status  || null;
-    const channel = req.query.channel || null;
+    const page      = Math.max(1, parseInt(req.query.page  || '1'));
+    const limit     = Math.min(100, parseInt(req.query.limit || '50'));
+    const offset    = (page - 1) * limit;
+    const status    = req.query.status      || null;
+    const channel   = req.query.channel     || null;
+    const triggered = req.query.triggered_by || null;
 
     const where = [];
     const params = [];
-    if (status)  { params.push(status);  where.push(`ml.status = $${params.length}`); }
-    if (channel) { params.push(channel); where.push(`ml.channel = $${params.length}`); }
+    if (status)    { params.push(status);    where.push(`ml.status = $${params.length}`); }
+    if (channel)   { params.push(channel);   where.push(`ml.channel = $${params.length}`); }
+    if (triggered) { params.push(triggered); where.push(`ml.triggered_by = $${params.length}`); }
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
     const dataParams  = [...params, limit, offset];
     const countParams = [...params];
 
-    const [dataRes, countRes] = await Promise.all([
+    const [dataRes, countRes, usersRes] = await Promise.all([
       query(`
         SELECT ml.id, ml.channel, ml.status, ml.sent_at, ml.day_offset,
-               ml.email_subject, ml.error_message,
+               ml.email_subject, ml.error_message, ml.triggered_by,
                c.id AS client_id, c.name AS client_name, c.phone,
                o.product_name, o.product_category, o.amount, o.order_number, o.bling_order_id,
                s.label AS step_label
@@ -930,11 +932,13 @@ router.get('/account/history', async (req, res) => {
         LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}
       `, dataParams),
       query(`SELECT COUNT(*) AS total FROM message_log ml ${whereClause}`, countParams),
+      query(`SELECT DISTINCT triggered_by FROM message_log WHERE triggered_by IS NOT NULL ORDER BY triggered_by`),
     ]);
 
     res.json({
-      rows:  dataRes.rows,
-      total: parseInt(countRes.rows[0].total),
+      rows:     dataRes.rows,
+      total:    parseInt(countRes.rows[0].total),
+      senders:  usersRes.rows.map(r => r.triggered_by),
       page,
       limit,
     });

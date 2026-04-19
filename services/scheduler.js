@@ -167,8 +167,8 @@ async function sendStep({ pipeline, step, context }) {
     `INSERT INTO message_log
        (pipeline_id, client_id, order_id, step_id, day_offset, channel,
         status, scheduled_for, sent_at, wa_message, wa_response,
-        email_subject, email_response, error_message)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+        email_subject, email_response, error_message, triggered_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
     [
       pipeline.pipeline_id, pipeline.client_id, pipeline.order_id,
       step.id, step.day_offset, step.channel,
@@ -180,6 +180,7 @@ async function sendStep({ pipeline, step, context }) {
       emailResult ? renderEmailSubject(step.email_subject, context) : null,
       emailResult ? JSON.stringify(emailResult) : null,
       errors.length > 0 ? errors.join(' | ') : null,
+      'scheduler',
     ]
   );
 
