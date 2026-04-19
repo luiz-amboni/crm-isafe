@@ -47,21 +47,12 @@ app.use((req, _res, next) => {
 });
 
 // ── RATE LIMIT ─────────────────────────────────────────────────────────────
-// Limite geral alto — o CRM é de uso interno, poucos usuários simultâneos
-// Rate limit agressivo fica só no login para evitar brute force
+// CRM de uso interno — sem rate limit geral.
+// Proteção apenas no login (brute force) e webhooks (spam externo).
 
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max:      2000,
-  standardHeaders: true,
-  legacyHeaders:   false,
-  skip: (req) => req.path === '/health',
-}));
-
-// Brute force protection no login
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max:      20,
+  max:      30,
   message:  { error: 'Muitas tentativas de login. Aguarde 15 minutos.' },
   standardHeaders: true,
   legacyHeaders:   false,
