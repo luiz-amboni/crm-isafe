@@ -691,7 +691,16 @@ select.cfg-inp{font-family:inherit;cursor:pointer}
   <div id="auto-list-view">
     <div class="sh">
       <div><h2>Automações</h2><p>Jornada pós-compra · clique numa etapa para gerenciar clientes e enviar mensagens</p></div>
-      <button class="btn btn-teal" onclick="openStepModal()">+ Adicionar automação</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="auto-sort" class="cfg-inp" style="padding:5px 8px;font-size:12px;height:36px" onchange="loadSteps()">
+          <option value="day_asc">📅 D+ crescente</option>
+          <option value="day_desc">📅 D+ decrescente</option>
+          <option value="label_asc">🔤 Nome A→Z</option>
+          <option value="channel">📡 Canal</option>
+          <option value="active_first">✅ Ativas primeiro</option>
+        </select>
+        <button class="btn btn-teal" onclick="openStepModal()">+ Adicionar automação</button>
+      </div>
     </div>
     <div class="tl" id="steps-list"><div style="text-align:center;color:var(--t3);padding:30px;font-size:13px">Carregando automações...</div></div>
     <div class="card" style="margin-top:16px;max-width:520px">
@@ -2143,11 +2152,20 @@ const _dotCls  = { whatsapp:'', email:'em', both:'both' };
 async function loadSteps() {
   try {
     const res   = await apiFetch('/api/steps');
-    const steps = await res.json();
+    let steps = await res.json();
     if (!Array.isArray(steps) || steps.length === 0) {
       document.getElementById('steps-list').innerHTML = '<div style="text-align:center;color:var(--t3);padding:30px">Nenhuma automação cadastrada. Clique em "+ Adicionar" para criar.</div>';
       return;
     }
+    const autoSort = document.getElementById('auto-sort')?.value || 'day_asc';
+    const AUTO_SORT_FN = {
+      day_asc:      (a,b) => a.day_offset - b.day_offset,
+      day_desc:     (a,b) => b.day_offset - a.day_offset,
+      label_asc:    (a,b) => (a.label||'').localeCompare(b.label||''),
+      channel:      (a,b) => (a.channel||'').localeCompare(b.channel||'') || a.day_offset - b.day_offset,
+      active_first: (a,b) => (b.is_active ? 1 : 0) - (a.is_active ? 1 : 0) || a.day_offset - b.day_offset,
+    };
+    steps = [...steps].sort(AUTO_SORT_FN[autoSort] || AUTO_SORT_FN.day_asc);
     document.getElementById('steps-list').innerHTML = steps.map(s => `
       <div class="tl-row" id="step-row-${s.id}">
         <div class="tl-day">D+${s.day_offset}</div>
